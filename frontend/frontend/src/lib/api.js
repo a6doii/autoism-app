@@ -1,7 +1,9 @@
+const BASE_URL = process.env.REACT_APP_API_URL || 'https://autoism-backend-production.up.railway.app';
+
 export async function api(path, options = {}) {
   const isFormData = options.isFormData === true;
 
-  const response = await fetch(`/api${path}`, {
+  const response = await fetch(`${BASE_URL}/api${path}`, {
     credentials: 'include',
     cache: 'no-store',
     headers: {
