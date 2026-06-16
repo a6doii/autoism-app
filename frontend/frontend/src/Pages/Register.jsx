@@ -21,7 +21,7 @@ const Register = () => {
   });
   const [profileImage, setProfileImage] = useState(null);
   const [profileImageFile, setProfileImageFile] = useState(null);
-  const [showPasswords, setShowPasswords] = useState(false);
+  const [showPasswords] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);

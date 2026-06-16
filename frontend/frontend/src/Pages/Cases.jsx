@@ -148,8 +148,7 @@ const Cases = () => {
       'Quite typical': t.quiteTypical,
       'Slightly unusual': t.slightlyUnusual,
       'Very unusual': t.veryUnusual,
-      "Doesn't speak": t.doesntSpeak,
-      "Doesn\'t speak": t.doesntSpeak
+      "Doesn't speak": t.doesntSpeak
     };
 
     const sortedKeys = Object.keys(allMaps).sort((a, b) => b.length - a.length);
@@ -362,6 +361,7 @@ const Cases = () => {
       : 'linear-gradient(135deg, #4ce3ac 0%, #058059 100%)'; 
 
     const themeBg = isHighRisk ? '#fef2f2' : '#ecfdf5';    
+    // eslint-disable-next-line no-unused-vars
     const themeBorder = isHighRisk ? '#fca5a5' : '#6ee7b7';
     
     const riskLabelEn = isHighRisk ? "HIGH RISK" : "LOW RISK";

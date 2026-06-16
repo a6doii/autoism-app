@@ -34,13 +34,13 @@ const Footer = () => {
         <div className="footer-section">
           <h3>{t.followUs}</h3>
           <div className="social-links">
-            <a href="#" aria-label="Facebook">
+            <a href="https://facebook.com" aria-label="Facebook" target="_blank" rel="noreferrer">
               <FontAwesomeIcon icon={faFacebookF} />
             </a>
-            <a href="#" aria-label="Twitter">
+            <a href="https://twitter.com" aria-label="Twitter" target="_blank" rel="noreferrer">
               <FontAwesomeIcon icon={faTwitter} />
             </a>
-            <a href="#" aria-label="Instagram">
+            <a href="https://instagram.com" aria-label="Instagram" target="_blank" rel="noreferrer">
               <FontAwesomeIcon icon={faInstagram} />
             </a>
           </div>
