@@ -1,4 +1,4 @@
-const BASE_URL = process.env.REACT_APP_API_URL || 'https://autoism-backend-production.up.railway.app';
+const BASE_URL = process.env.REACT_APP_API_URL || '';
 
 export async function api(path, options = {}) {
   const isFormData = options.isFormData === true;
