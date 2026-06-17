@@ -26,7 +26,7 @@ const Footer = () => {
           <h3>{t.contact}</h3>
           <p>
             <FontAwesomeIcon icon={faEnvelope} style={{ marginRight: "1%" }} />
-            support@auto-ism.com
+            autoismsupport@gmail.com
           </p>
           <p>{t.footerAddress}</p>
         </div>

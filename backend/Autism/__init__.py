@@ -24,7 +24,12 @@ def create_app():
     app.config['UPLOAD_FOLDER'] = upload_dir
 
     db.init_app(app)
-    CORS(app, supports_credentials=True, origins=['http://localhost:3000', 'http://127.0.0.1:3000'])
+    CORS(app, supports_credentials=True, origins=[
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'https://autoism-backend-production.up.railway.app',
+        'https://autoism-rdb9qtwo1-a6doiis-projects.vercel.app',
+    ])
 
     @app.after_request
     def add_no_cache_headers(response):
