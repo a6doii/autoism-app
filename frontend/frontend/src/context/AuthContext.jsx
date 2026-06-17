@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { api } from '../lib/api';
+import { api, setAuthToken } from '../lib/api';
 
 const AuthContext = createContext(null);
 
@@ -24,7 +24,12 @@ export function AuthProvider({ children }) {
     refreshUser();
   }, []);
 
-  const value = { user, setUser, loading, refreshUser };
+  function logout() {
+    setAuthToken(null);
+    setUser(null);
+  }
+
+  const value = { user, setUser, loading, refreshUser, logout };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

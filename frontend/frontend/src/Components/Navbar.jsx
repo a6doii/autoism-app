@@ -8,13 +8,13 @@ import { faUserCircle } from '@fortawesome/free-solid-svg-icons';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, setUser } = useAuth();
+  const { user, logout } = useAuth();
   const { language, toggleLanguage, t } = useLanguage();
   const navigate = useNavigate();
 
   async function handleLogout() {
-    await api('/logout', { method: 'POST' });
-    setUser(null);
+    try { await api('/logout', { method: 'POST' }); } catch (_) {}
+    logout();
     setIsMenuOpen(false);
     navigate('/');
   }

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { api } from '../lib/api';
+import { api, setAuthToken } from '../lib/api';
 import { auth } from '../lib/firebase';
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 
@@ -27,6 +27,7 @@ const Login = () => {
     try {
       if (formData.email === 'admin1') {
         const data = await api('/login', { method: 'POST', body: JSON.stringify(formData) });
+        setAuthToken(data.token);
         setUser(data.user);
         return navigate('/admin');
       }
@@ -40,7 +41,8 @@ const Login = () => {
       }
 
       const data = await api('/login', { method: 'POST', body: JSON.stringify(formData) });
-      
+      setAuthToken(data.token);
+
       if (trustDevice) {
         localStorage.setItem(`trustedDevice_${formData.email}`, 'true');
       }

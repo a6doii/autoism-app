@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { api } from '../lib/api';
+import { api, setAuthToken } from '../lib/api';
 import { auth, authActionSettings } from '../lib/firebase';
 import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -94,6 +94,7 @@ const Register = () => {
       await sendEmailVerification(userCredential.user, authActionSettings);
 
       const data = await api('/register', { method: 'POST', body: JSON.stringify(formData) });
+      setAuthToken(data.token);
 
       let registeredUser = data.user;
       if (profileImageFile && registeredUser) {

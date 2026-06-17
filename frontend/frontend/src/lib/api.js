@@ -1,13 +1,24 @@
 const BASE_URL = process.env.REACT_APP_API_URL || '';
 
+export function setAuthToken(token) {
+  if (token) localStorage.setItem('auth_token', token);
+  else localStorage.removeItem('auth_token');
+}
+
+export function getAuthToken() {
+  return localStorage.getItem('auth_token');
+}
+
 export async function api(path, options = {}) {
   const isFormData = options.isFormData === true;
+  const token = getAuthToken();
 
   const response = await fetch(`${BASE_URL}/api${path}`, {
     credentials: 'include',
     cache: 'no-store',
     headers: {
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
     ...options,
