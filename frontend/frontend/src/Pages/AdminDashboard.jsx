@@ -4,6 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 import mascotAdmin from '../Assets/mascot_admin.png';
+import MascotSparkle from '../Components/MascotSparkle';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer
@@ -130,7 +131,7 @@ const AdminDashboard = () => {
     <div className="container" style={{ paddingTop: '2rem', paddingBottom: '2rem' }} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <img src={mascotAdmin} alt="mascot" style={{ width: '72px', height: '72px', objectFit: 'contain', filter: 'drop-shadow(0 4px 12px rgba(56,189,248,0.35))' }} />
+          <MascotSparkle src={mascotAdmin} alt="mascot" width="90px" />
           <h1 style={{ margin: 0 }}>{t.adminDashboard}</h1>
         </div>
         <button className="btn btn-secondary" onClick={handleRefresh} disabled={refreshing}>

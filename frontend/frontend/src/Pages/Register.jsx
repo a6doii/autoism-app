@@ -8,6 +8,7 @@ import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faPlus } from '@fortawesome/free-solid-svg-icons';
 import mascotExcited from '../Assets/mascot_excited.png';
+import MascotSparkle from '../Components/MascotSparkle';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -200,7 +201,7 @@ const Register = () => {
       ) : (
         <div className="auth-box">
           <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-            <img src={mascotExcited} alt="mascot" style={{ width: '140px', height: '140px', objectFit: 'contain', margin: '0 auto 1rem auto', display: 'block', animation: 'mascotFloat 4s ease-in-out infinite', filter: 'drop-shadow(0 8px 20px rgba(56,189,248,0.3))' }} />
+            <MascotSparkle src={mascotExcited} alt="mascot" width="175px" wrapperStyle={{ margin: '0 auto 1rem auto' }} />
             <h2>{language === 'ar' ? 'في انتظار التفعيل...' : 'Waiting for Verification...'}</h2>
             <p style={{ color: '#64748B', marginBottom: '1.5rem', lineHeight: '1.6' }}>
               {language === 'ar'

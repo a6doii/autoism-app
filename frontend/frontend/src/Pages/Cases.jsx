@@ -8,6 +8,7 @@ import { useLanguage } from '../context/LanguageContext';
 import '../CSS/Cases.css';
 import mascotThinking from '../Assets/mascot_thinking.png';
 import mascotHappyResult from '../Assets/mascot_happy_result.png';
+import MascotSparkle from '../Components/MascotSparkle';
 
 const answerLetters = ['A', 'B', 'C', 'D', 'E'];
 const emptyForm = { child_name: '', child_dob: '', brief: '' };
@@ -770,7 +771,7 @@ const Cases = () => {
               {assessmentStep === 'questions' && (
                 <>
                   <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                    <img src={mascotThinking} alt="mascot thinking" style={{ width: '120px', objectFit: 'contain', filter: 'drop-shadow(0 6px 16px rgba(56,189,248,0.3))', animation: 'mascotFloat 4s ease-in-out infinite' }} />
+                    <MascotSparkle src={mascotThinking} alt="mascot thinking" width="150px" wrapperStyle={{ margin: '0 auto' }} />
                   </div>
                   <div className={`status-box ${imageChecked ? 'accepted' : ''}`}>{imageChecked ? t.imageAccepted : t.completeQuestions}</div>
                   <div className="form-group"><label>{t.childSex}</label><select className="form-control" value={qchat.child_sex} onChange={e => setAnswer('child_sex', e.target.value)}><option value="">{t.selectSex}</option><option value="male">{t.male}</option><option value="female">{t.female}</option></select></div>
@@ -802,7 +803,7 @@ const Cases = () => {
             <button className="back-button" onClick={() => setView('list')}><FontAwesomeIcon icon={faArrowLeft} /> {t.backToCases}</button>
             <div className="report-header">
               {!(currentReport.prediction_label?.toLowerCase().includes('high') || currentReport.prediction_label?.toLowerCase().includes('autism likelihood detected')) && (
-                <img src={mascotHappyResult} alt="mascot" style={{ width: '110px', objectFit: 'contain', filter: 'drop-shadow(0 6px 20px rgba(56,189,248,0.35))', animation: 'mascotFloat 4s ease-in-out infinite', marginBottom: '0.5rem' }} />
+                <MascotSparkle src={mascotHappyResult} alt="mascot" width="138px" wrapperStyle={{ marginBottom: '0.5rem' }} />
               )}
               <div className="score-circle">{riskPercent}</div>
               <h2>{language === 'ar' ? getArabicRiskLabel(currentReport.prediction_label) : currentReport.prediction_label}</h2>
