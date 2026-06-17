@@ -64,6 +64,7 @@ const Cases = () => {
     10: [t.manyTimesDay, t.fewTimesDay, t.fewTimesWeek, t.lessThanOnceWeek, t.never]
   };
 
+  // eslint-disable-next-line no-unused-vars
   const translateReportToArabic = (englishText) => {
     if (!englishText) return '';
     let translated = englishText;
