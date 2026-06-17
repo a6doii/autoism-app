@@ -103,7 +103,7 @@ const About = () => {
                 <FontAwesomeIcon icon={faRocket} />
               </div>
               <h3>{t.ourVision}</h3>
-              <p style={{ color: '#64748B', marginTop: 'clamp(0.5rem, 1.5vw, 0.75rem)', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
+              <p style={{ color: '#3b82f6', marginTop: 'clamp(0.5rem, 1.5vw, 0.75rem)', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)', fontWeight: 600 }}>
                 {t.visionText}
               </p>
             </div>
