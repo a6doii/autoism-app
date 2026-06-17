@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { useLanguage } from '../../context/LanguageContext';
 import confetti from 'canvas-confetti';
+import mascotExcited from '../../Assets/mascot_excited.png';
 
 const TOTAL = 8;
 const POINTS = 1;
@@ -168,7 +169,7 @@ const EmotionGame = ({ onFinish, onBack }) => {
 
       {gameState === 'gameover' && (
         <div className="game-over">
-          <span className="trophy">{pct >= 0.8 ? '🏆' : pct >= 0.5 ? '🎉' : '💪'}</span>
+          <img src={mascotExcited} alt="mascot" style={{ width: '150px', objectFit: 'contain', filter: 'drop-shadow(0 8px 20px rgba(56,189,248,0.35))', animation: 'mascotFloat 4s ease-in-out infinite', marginBottom: '0.5rem' }} />
           <h2>{pct >= 0.8 ? t.gameOverTitleExcellent : pct >= 0.5 ? t.gameOverTitleGood : t.gameOverTitleKeep}</h2>
           <p style={{ color: '#64748B', fontSize: '1.1rem', marginBottom: '30px', direction: language === 'ar' ? 'rtl' : 'ltr' }}>
             {language === 'ar' ? `لقد سجلت ${score} من أصل ${maxPts}` : `You scored ${score} out of ${maxPts}`}

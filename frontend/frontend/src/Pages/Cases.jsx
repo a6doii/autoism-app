@@ -6,6 +6,8 @@ import {
 import { api } from '../lib/api';
 import { useLanguage } from '../context/LanguageContext';
 import '../CSS/Cases.css';
+import mascotThinking from '../Assets/mascot_thinking.png';
+import mascotHappyResult from '../Assets/mascot_happy_result.png';
 
 const answerLetters = ['A', 'B', 'C', 'D', 'E'];
 const emptyForm = { child_name: '', child_dob: '', brief: '' };
@@ -767,6 +769,9 @@ const Cases = () => {
               )}
               {assessmentStep === 'questions' && (
                 <>
+                  <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                    <img src={mascotThinking} alt="mascot thinking" style={{ width: '120px', objectFit: 'contain', filter: 'drop-shadow(0 6px 16px rgba(56,189,248,0.3))', animation: 'mascotFloat 4s ease-in-out infinite' }} />
+                  </div>
                   <div className={`status-box ${imageChecked ? 'accepted' : ''}`}>{imageChecked ? t.imageAccepted : t.completeQuestions}</div>
                   <div className="form-group"><label>{t.childSex}</label><select className="form-control" value={qchat.child_sex} onChange={e => setAnswer('child_sex', e.target.value)}><option value="">{t.selectSex}</option><option value="male">{t.male}</option><option value="female">{t.female}</option></select></div>
                   <div className="form-group"><label>{t.ethnicity}</label><select className="form-control" value={qchat.child_ethnicity} onChange={e => setAnswer('child_ethnicity', e.target.value)}><option value="">{t.selectEthnicity}</option><option value="white-european">{t.whiteEuropean}</option><option value="asian">{t.asian}</option><option value="middle eastern">{t.middleEastern}</option><option value="black">{t.black}</option><option value="south asian">{t.southAsian}</option><option value="hispanic">{t.hispanic}</option><option value="latino">{t.latino}</option><option value="others">{t.others}</option><option value="mixed">{t.mixed}</option><option value="pacifica">{t.pacifica}</option><option value="native indian">{t.nativeIndian}</option></select></div>
@@ -796,6 +801,9 @@ const Cases = () => {
           <div className="report-container">
             <button className="back-button" onClick={() => setView('list')}><FontAwesomeIcon icon={faArrowLeft} /> {t.backToCases}</button>
             <div className="report-header">
+              {!isHighRisk && (
+                <img src={mascotHappyResult} alt="mascot" style={{ width: '110px', objectFit: 'contain', filter: 'drop-shadow(0 6px 20px rgba(56,189,248,0.35))', animation: 'mascotFloat 4s ease-in-out infinite', marginBottom: '0.5rem' }} />
+              )}
               <div className="score-circle">{riskPercent}</div>
               <h2>{language === 'ar' ? getArabicRiskLabel(currentReport.prediction_label) : currentReport.prediction_label}</h2>
             </div>
