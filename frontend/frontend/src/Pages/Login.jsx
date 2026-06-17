@@ -67,8 +67,8 @@ const Login = () => {
   };
 
   const getEmailPlaceholder = () => {
-    if (language === 'ar') return 'example@email.com أو admin1';
-    return 'your.email@example.com or admin1';
+    if (language === 'ar') return 'example@email.com ';
+    return 'your.email@example.com ';
   };
 
   return (
