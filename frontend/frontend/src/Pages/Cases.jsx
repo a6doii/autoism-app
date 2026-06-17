@@ -357,6 +357,19 @@ const Cases = () => {
       : t.notApplicable || 'N/A';
   }, [currentReport, t]);
 
+  const getRecommendation = (report, lang) => {
+    const isHigh = report?.prediction_label?.toLowerCase().includes('high') ||
+                   report?.prediction_label?.toLowerCase().includes('autism likelihood detected');
+    if (lang === 'ar') {
+      return isHigh
+        ? 'تم رصد خطر مرتفع للتوحد. قم بزيارة أقرب أخصائي توحد حتى يتمكن من مساعدتك بشكل أكثر شمولاً. تذكر (الكشف المبكر عن التوحد هو نصف الرحلة للتغلب على التوحد). ملاحظة: هذا التقرير لا يحل محل التشخيص السريري.'
+        : 'لم يتم رصد أي علامات للتوحد. إذا كان لديك أي مخاوف، يرجى زيارة أقرب أخصائي توحد وإراءته هذا التقرير. ملاحظة: هذا التقرير لا يحل محل التشخيص السريري.';
+    }
+    return isHigh
+      ? 'A high risk of autism has been observed. Visit the nearest autism specialist so they can help you more extensively. Remember (detecting autism early is half the journey to overcome autism). Note: This report does not replace a clinical diagnosis.'
+      : 'No signs of autism were observed. If you have any concerns, please visit your nearest autism specialist and show them this report. Note: This report does not replace a clinical diagnosis.';
+  };
+
   const generatePDF = () => {
     if (!currentReport) return;
 
@@ -491,7 +504,7 @@ const Cases = () => {
     const textStartY = afterTableY + 10;
     doc.line(20, textStartY, 20, textStartY + 80);
 
-    const reportText = currentReport.report_text || '';
+    const reportText = getRecommendation(currentReport, 'en');
     const textLines = doc.splitTextToSize(reportText, 160);
     doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor(51, 65, 85);
     doc.text(textLines, 25, textStartY + 6);
@@ -683,7 +696,7 @@ const Cases = () => {
                 <div className="stat-item"><p>{t.combinedRisk || 'Combined Risk'}</p><h3>{riskPercent}</h3></div>
               </div>
               <div className="report-text" dir="auto">
-                {language === 'ar' ? translateReportToArabic(currentReport.report_text) : currentReport.report_text}
+                {getRecommendation(currentReport, language)}
               </div>
               <button className="btn btn-primary" onClick={generatePDF}><FontAwesomeIcon icon={faDownload} /> {t.downloadPDF}</button>
             </div>
