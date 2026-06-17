@@ -94,6 +94,9 @@ const About = () => {
               <p style={{ color: '#64748B', marginTop: 'clamp(0.5rem, 1.5vw, 0.75rem)', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
                 {t.missionText}
               </p>
+              <p style={{ color: '#3b82f6', marginTop: 'clamp(0.4rem, 1vw, 0.6rem)', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)', fontWeight: 600 }}>
+                {t.missionTagline}
+              </p>
             </div>
             <div className="mission-card">
               <div className="icon-circle">
