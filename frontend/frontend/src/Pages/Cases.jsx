@@ -515,8 +515,238 @@ const Cases = () => {
     doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(148, 163, 184);
     doc.text(`Generated: ${reportDate}`, 105, 276, { align: 'center' });
 
+    // ── Page 3: Q-CHAT Responses ────────────────────────
+    doc.addPage();
+    doc.setFontSize(28); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+    doc.text('Auto-Ism', 20, 25);
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
+    doc.text('Q-CHAT-10 Questionnaire Responses', 20, 33);
+    doc.setDrawColor(...accentColor); doc.setLineWidth(0.8);
+    doc.line(20, 38, 190, 38);
+
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+    doc.text('Question Responses', 20, 50);
+    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.5);
+    doc.line(20, 53, 190, 53);
+
+    const pdfQuestions = [
+      'Does your child look at you when you call his/her name?',
+      'How easy is it for you to get eye contact with your child?',
+      'Does your child point to indicate that s/he wants something?',
+      'Does your child point to share interest with you?',
+      'Does your child pretend? (e.g., care for dolls, talk on toy phone)',
+      'Does your child follow where you\'re looking?',
+      'If someone is upset, does your child try to comfort them?',
+      'Would you describe your child\'s first words as:',
+      'Does your child use simple gestures?',
+      'Does your child stare at nothing with no apparent purpose?',
+    ];
+    const pdfOptions = [
+      ['Always','Usually','Sometimes','Rarely','Never'],
+      ['Very easy','Quite easy','Quite difficult','Very difficult','Impossible'],
+      ['Many times a day','Few times a day','Few times a week','Less than once a week','Never'],
+      ['Many times a day','Few times a day','Few times a week','Less than once a week','Never'],
+      ['Many times a day','Few times a day','Few times a week','Less than once a week','Never'],
+      ['Many times a day','Few times a day','Few times a week','Less than once a week','Never'],
+      ['Always','Usually','Sometimes','Rarely','Never'],
+      ['Very typical','Quite typical','Slightly unusual','Very unusual',"Doesn't speak"],
+      ['Many times a day','Few times a day','Few times a week','Less than once a week','Never'],
+      ['Many times a day','Few times a day','Few times a week','Less than once a week','Never'],
+    ];
+    const reportAnswers = currentReport.answers || {};
+    const qchatRows = pdfQuestions.map((q, i) => {
+      const letter = reportAnswers[`A${i + 1}`] || '-';
+      const idx = ['A','B','C','D','E'].indexOf(letter);
+      const answerText = idx >= 0 ? pdfOptions[i][idx] : letter;
+      return [`Q${i + 1}`, q, answerText];
+    });
+    autoTable(doc, {
+      startY: 56,
+      head: [['#', 'Question', 'Response']],
+      body: qchatRows,
+      headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 9, lineColor: [203, 213, 225], lineWidth: 0.3 },
+      bodyStyles: { textColor: [51, 65, 85], fontSize: 9, lineColor: [226, 232, 240], lineWidth: 0.2 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: { 0: { cellWidth: 12, halign: 'center', fontStyle: 'bold' }, 1: { cellWidth: 128 }, 2: { cellWidth: 40, fontStyle: 'bold' } },
+    });
+
+    doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3);
+    doc.line(20, 270, 190, 270);
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(148, 163, 184);
+    doc.text(`Generated: ${reportDate}`, 105, 276, { align: 'center' });
+
     const fileName = `Auto-Ism-Report-${childName.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
     doc.save(fileName);
+  };
+
+  const generateArabicReport = () => {
+    if (!currentReport) return;
+
+    const isHighRisk = currentReport.prediction_label?.toLowerCase().includes('high') ||
+                       currentReport.prediction_label?.toLowerCase().includes('autism likelihood detected');
+    const themeColor = isHighRisk ? '#dc2626' : '#059669';
+    const themeBgGradient = isHighRisk
+      ? 'linear-gradient(135deg, #ff0000 0%, #7a1010 100%)'
+      : 'linear-gradient(135deg, #4ce3ac 0%, #058059 100%)';
+    const themeBg = isHighRisk ? '#fef2f2' : '#ecfdf5';
+    const riskLabelAr = isHighRisk ? 'خطر مرتفع' : 'خطر منخفض';
+    const childName = activeCase?.child_name || 'N/A';
+    const childDob = activeCase?.child_dob || 'N/A';
+    const dateStr = new Date(currentReport.created_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+    const riskPct = currentReport.combined_risk != null ? `${(currentReport.combined_risk * 100).toFixed(1)}%` : 'N/A';
+
+    const extractDemo = (text, key) => {
+      if (!text) return null;
+      const regex = new RegExp(`${key}:\\s*([^\\n\\r]+)`, 'i');
+      const match = text.match(regex);
+      return match ? match[1].trim() : null;
+    };
+    const demSex = extractDemo(currentReport.report_text, 'Child sex') || 'N/A';
+    const demEthnicity = extractDemo(currentReport.report_text, 'Ethnicity') || 'N/A';
+    const demJaundice = extractDemo(currentReport.report_text, 'Jaundice history') || 'N/A';
+    const demFamilyAsd = extractDemo(currentReport.report_text, 'Family ASD history') || 'N/A';
+    const translateValAr = (v) => {
+      const map = { male:'ذكر', female:'أنثى', yes:'نعم', no:'لا', 'white-european':'أبيض-أوروبي', asian:'آسيوي', 'middle eastern':'شرق أوسطي', black:'أسود', 'south asian':'جنوب آسيوي', hispanic:'من أصل إسباني', latino:'لاتيني', others:'أخرى', mixed:'مختلط' };
+      return map[String(v).toLowerCase().trim()] || v;
+    };
+
+    const arQuestions = [
+      'هل ينظر طفلك إليك عندما تناديه باسمه؟',
+      'ما مدى سهولة التواصل البصري مع طفلك؟',
+      'هل يشير طفلك للإشارة إلى أنه يريد شيئًا؟',
+      'هل يشير طفلك لمشاركة اهتمامه معك؟',
+      'هل يتظاهر طفلك (يلعب ألعاب التخيل)؟',
+      'هل يتابع طفلك اتجاه نظرتك؟',
+      'إذا كان شخص ما منزعجًا، هل يحاول طفلك تهدئته؟',
+      'كيف تصف كلمات طفلك الأولى؟',
+      'هل يستخدم طفلك إيماءات بسيطة؟',
+      'هل يحدق طفلك في الفراغ بدون سبب واضح؟',
+    ];
+    const arOptions = [
+      ['دائمًا','عادةً','أحيانًا','نادرًا','أبدًا'],
+      ['سهل جدًا','سهل نسبيًا','صعب نسبيًا','صعب جدًا','مستحيل'],
+      ['عدة مرات يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+      ['عدة مرات يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+      ['عدة مرات يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+      ['عدة مرات يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+      ['دائمًا','عادةً','أحيانًا','نادرًا','أبدًا'],
+      ['طبيعية جدًا','طبيعية نسبيًا','غير عادية قليلًا','غير عادية جدًا','لا يتكلم'],
+      ['عدة مرات يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+      ['عدة مرات يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+    ];
+    const arAnswers = currentReport.answers || {};
+    const qchatRowsAr = arQuestions.map((q, i) => {
+      const letter = arAnswers[`A${i + 1}`] || '-';
+      const idx = ['A','B','C','D','E'].indexOf(letter);
+      const answerText = idx >= 0 ? arOptions[i][idx] : letter;
+      return `<tr><td style="font-weight:700;color:#475569;text-align:center;width:30px">${i + 1}</td><td>${q}</td><td style="font-weight:700;width:160px">${answerText}</td></tr>`;
+    }).join('');
+
+    const recommendationAr = getRecommendation(currentReport, 'ar');
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>تقرير Auto-Ism - ${childName}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap');
+    @page { size: A4; margin: 0; }
+    body { font-family: 'Cairo', sans-serif; margin: 0; background: #e2e8f0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page { width: 210mm; min-height: 297mm; padding: 20mm; margin: 0 auto; background: white; box-sizing: border-box; position: relative; page-break-after: always; }
+    .page:last-child { page-break-after: auto; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid ${themeColor}; padding-bottom: 15px; margin-bottom: 30px; }
+    .header h1 { margin: 0; font-size: 32px; color: #0f172a; font-weight: 800; }
+    .header p { margin: 5px 0 0; color: #64748b; font-size: 14px; }
+    .header-right { font-size: 12px; color: #94a3b8; line-height: 1.7; text-align: left; }
+    .patient-card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; margin-bottom: 30px; background: #f8fafc; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .info-label { font-size: 11px; letter-spacing: 0.5px; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+    .info-value { font-size: 16px; color: #0f172a; font-weight: 700; }
+    .risk-banner { background: ${themeBgGradient}; color: white; padding: 25px; border-radius: 8px; text-align: center; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .risk-title { font-size: 14px; opacity: 0.9; margin-bottom: 5px; }
+    .risk-status { font-size: 32px; font-weight: 800; margin: 0; }
+    h2.section-title { font-size: 20px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 25px; border: 1px solid #cbd5e1; overflow: hidden; border-radius: 8px; }
+    th, td { padding: 14px 16px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+    th { background: #f1f5f9; color: #475569; font-weight: 700; }
+    td { color: #334155; }
+    tr:last-child td { border-bottom: none; }
+    .highlight-row td { background: ${themeBg}; color: ${themeColor}; font-weight: 800; font-size: 16px; }
+    .analysis-text { line-height: 2.2; font-size: 15px; color: #334155; padding: 20px; border-right: 4px solid ${themeColor}; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 8px 0 0 8px; white-space: pre-wrap; }
+    .footer { position: absolute; bottom: 20mm; left: 20mm; right: 20mm; border-top: 1px solid #cbd5e1; padding-top: 15px; font-size: 11px; color: #94a3b8; line-height: 1.6; }
+    .footer-date { text-align: center; margin-top: 10px; font-weight: 700; }
+    @media print { body { background: white; } .page { box-shadow: none; margin: 0; } }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div><h1>Auto-Ism</h1><p>تقرير الفحص المبكر للتوحد</p></div>
+    <div class="header-right">جامعة القاهرة - كلية الحاسبات والذكاء الاصطناعي 2026<br>إشراف د. إلهام شوقي</div>
+  </div>
+  <div class="patient-card">
+    <div><div class="info-label">اسم المريض</div><div class="info-value">${childName}</div></div>
+    <div><div class="info-label">تاريخ التقييم</div><div class="info-value">${dateStr}</div></div>
+    <div><div class="info-label">تاريخ الميلاد</div><div class="info-value">${childDob}</div></div>
+    <div><div class="info-label">رقم الحالة</div><div class="info-value">#${currentReport.case_id}</div></div>
+  </div>
+  <div class="risk-banner">
+    <div class="risk-title">مؤشر المخاطر المجمعة</div>
+    <div class="risk-status">${riskLabelAr}</div>
+  </div>
+  <h2 class="section-title">تشخيصات النموذج</h2>
+  <table>
+    <thead><tr><th>مكون التقييم</th><th>الدرجة المحسوبة</th></tr></thead>
+    <tbody>
+      <tr><td>تحليل استبيان Q-CHAT-10</td><td>${currentReport.spark_score}/10</td></tr>
+      <tr><td>التحليل البيومتري للوجه</td><td>${currentReport.image_score != null ? (currentReport.image_score * 100).toFixed(1) + '%' : 'N/A'}</td></tr>
+      <tr class="highlight-row"><td>الاحتمالية النهائية المرجحة</td><td>${riskPct}</td></tr>
+    </tbody>
+  </table>
+  <div class="footer">هذا التقرير هو أداة مساعدة قائمة على الذكاء الاصطناعي ولا يشكل تشخيصاً طبياً رسمياً. يجب عرض هذه النتائج على طبيب أطفال أو أخصائي توحد معتمد.</div>
+</div>
+
+<div class="page">
+  <div class="header">
+    <div><h1>Auto-Ism</h1><p>التحليل المفصل والبيانات الديموغرافية</p></div>
+  </div>
+  <h2 class="section-title">الملف الديموغرافي</h2>
+  <table>
+    <tbody>
+      <tr><td style="font-weight:700;color:#64748b;width:45%">الجنس البيولوجي</td><td>${translateValAr(demSex)}</td></tr>
+      <tr><td style="font-weight:700;color:#64748b">العرق</td><td>${translateValAr(demEthnicity)}</td></tr>
+      <tr><td style="font-weight:700;color:#64748b">تاريخ الإصابة باليرقان</td><td>${translateValAr(demJaundice)}</td></tr>
+      <tr><td style="font-weight:700;color:#64748b">تاريخ العائلة مع التوحد</td><td>${translateValAr(demFamilyAsd)}</td></tr>
+    </tbody>
+  </table>
+  <h2 class="section-title">التوصية السريرية</h2>
+  <div class="analysis-text">${recommendationAr}</div>
+  <div class="footer"><div class="footer-date">تاريخ الإنشاء: ${dateStr}</div></div>
+</div>
+
+<div class="page">
+  <div class="header">
+    <div><h1>Auto-Ism</h1><p>إجابات استبيان Q-CHAT-10</p></div>
+  </div>
+  <h2 class="section-title">إجابات الأسئلة</h2>
+  <table>
+    <thead><tr><th style="width:30px;text-align:center">#</th><th>السؤال</th><th style="width:160px">الإجابة</th></tr></thead>
+    <tbody>${qchatRowsAr}</tbody>
+  </table>
+  <div class="footer"><div class="footer-date">تاريخ الإنشاء: ${dateStr}</div></div>
+</div>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Auto-Ism-تقرير-${childName}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const displayedCases = cases.slice(0, displayCount);
@@ -699,7 +929,14 @@ const Cases = () => {
               <div className="report-text" dir="auto">
                 {getRecommendation(currentReport, language)}
               </div>
-              <button className="btn btn-primary" onClick={generatePDF}><FontAwesomeIcon icon={faDownload} /> {t.downloadPDF}</button>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '1rem' }}>
+                <button className="btn btn-primary" onClick={generatePDF}>
+                  <FontAwesomeIcon icon={faDownload} /> {t.downloadPDF || 'Download PDF (English)'}
+                </button>
+                <button className="btn btn-secondary" onClick={generateArabicReport}>
+                  <FontAwesomeIcon icon={faDownload} /> تحميل التقرير (عربي)
+                </button>
+              </div>
             </div>
           </div>
         )}
