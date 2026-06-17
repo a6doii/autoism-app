@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPlus, faArrowLeft, faDownload, faFileMedical, faTrash, faPlay, faList, faChevronDown, faChevronUp
@@ -579,7 +580,7 @@ const Cases = () => {
     doc.save(fileName);
   };
 
-  const generateArabicReport = () => {
+  const generateArabicReport = async () => {
     if (!currentReport) return;
 
     const isHighRisk = currentReport.prediction_label?.toLowerCase().includes('high') ||
@@ -738,15 +739,32 @@ const Cases = () => {
 </body>
 </html>`;
 
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Auto-Ism-تقرير-${childName}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Render HTML → canvas → PDF
+    const container = document.createElement('div');
+    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:white;';
+    container.innerHTML = htmlContent;
+    document.body.appendChild(container);
+
+    // Wait for Cairo font to load
+    await document.fonts.load('700 16px Cairo');
+
+    const pages = container.querySelectorAll('.page');
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    for (let i = 0; i < pages.length; i++) {
+      const pageEl = pages[i];
+      pageEl.style.width = '794px';
+      pageEl.style.minHeight = '1122px';
+      pageEl.style.height = '1122px';
+
+      const canvas = await html2canvas(pageEl, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+      if (i > 0) doc.addPage();
+      doc.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+    }
+
+    document.body.removeChild(container);
+    doc.save(`Auto-Ism-تقرير-${childName.replace(/[^a-zA-Z0-9ء-ي]/g, '-')}.pdf`);
   };
 
   const displayedCases = cases.slice(0, displayCount);
