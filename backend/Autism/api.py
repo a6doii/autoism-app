@@ -2,6 +2,7 @@ import json
 import os
 import pickle
 from datetime import date, datetime
+from werkzeug.security import check_password_hash, generate_password_hash
 
 import cv2
 import numpy as np
@@ -612,6 +613,34 @@ def admin_delete_user(user_id):
     if user.is_admin:
         return jsonify({'error': 'Admin account cannot be deleted.'}), 400
 
-    db.session.delete(user)
+    try:
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({'message': 'User deleted successfully.'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Could not delete user: {str(e)}'}), 500
+
+
+@api.route('/user/verify-password', methods=['POST'])
+@login_required
+def verify_password():
+    data = request.get_json(silent=True) or {}
+    if check_password_hash(current_user.password, data.get('password', '')):
+        return jsonify({'verified': True})
+    return jsonify({'error': 'Incorrect password.'}), 400
+
+
+@api.route('/user/change-password', methods=['POST'])
+@login_required
+def change_password():
+    data = request.get_json(silent=True) or {}
+    old_password = data.get('oldPassword', '')
+    new_password = data.get('newPassword', '')
+    if not check_password_hash(current_user.password, old_password):
+        return jsonify({'error': 'Incorrect current password.'}), 400
+    if len(new_password) < 6:
+        return jsonify({'error': 'New password must be at least 6 characters.'}), 400
+    current_user.password = generate_password_hash(new_password, method='pbkdf2:sha256', salt_length=16)
     db.session.commit()
-    return jsonify({'message': 'User deleted successfully.'})
+    return jsonify({'success': True, 'message': 'Password changed successfully.'})

@@ -21,7 +21,7 @@ class Case(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     child_name = db.Column(db.String(150), nullable=False)
     child_dob = db.Column(db.String(50), nullable=False)
-    brief = db.Column(db.String(500), nullable=False)
+    brief = db.Column(db.String(500), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_result_summary = db.Column(db.String(200))
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

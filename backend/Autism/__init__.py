@@ -87,6 +87,13 @@ def create_app():
     with app.app_context():
         db.create_all()
 
+        if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql'):
+            try:
+                with db.engine.begin() as conn:
+                    conn.execute(text('ALTER TABLE "case" ALTER COLUMN brief DROP NOT NULL'))
+            except Exception:
+                pass
+
         existing_columns = [col['name'] for col in inspect(db.engine).get_columns('user')]
         if 'profile_image' not in existing_columns:
             with db.engine.begin() as conn:

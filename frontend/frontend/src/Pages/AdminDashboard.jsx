@@ -28,6 +28,7 @@ const AdminDashboard = () => {
   const [recentReports, setRecentReports] = useState([]);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [displayCount, setDisplayCount] = useState(5);
 
   const ETHNICITY_LABELS = {
     'white-european': t.whiteEuropean,
@@ -70,8 +71,12 @@ const AdminDashboard = () => {
 
   async function deleteUser(id) {
     if (!window.confirm(t.deleteConfirm)) return;
-    await api(`/admin/users/${id}`, { method: 'DELETE' });
-    await load();
+    try {
+      await api(`/admin/users/${id}`, { method: 'DELETE' });
+      await load();
+    } catch (err) {
+      setError(err.message || 'Failed to delete user.');
+    }
   }
 
   const translateLabel = (label) => {
@@ -257,7 +262,7 @@ const AdminDashboard = () => {
       <div className="form-container" style={{ padding: '1rem', marginBottom: '2rem' }}>
         <h2 style={{ marginBottom: '1rem' }}>{t.allAccounts}</h2>
         <div style={{ display: 'grid', gap: '.75rem' }}>
-          {users.map((u) => (
+          {users.slice(0, displayCount).map((u) => (
             <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '.75rem' }}>
               <div>
                 <strong>{u.firstname} {u.lastname}</strong> <span style={{ color: 'var(--text-muted)' }}>({u.email})</span>
@@ -273,6 +278,17 @@ const AdminDashboard = () => {
             </div>
           ))}
         </div>
+        {users.length > 5 && (
+          <button
+            className="btn btn-secondary"
+            style={{ marginTop: '1rem', width: '100%' }}
+            onClick={() => setDisplayCount(displayCount >= users.length ? 5 : users.length)}
+          >
+            {displayCount >= users.length
+              ? (language === 'ar' ? 'عرض أقل' : 'View Less')
+              : (language === 'ar' ? `عرض الكل (${users.length})` : `View All (${users.length})`)}
+          </button>
+        )}
       </div>
 
       <div className="form-container" style={{ padding: '1rem' }}>
