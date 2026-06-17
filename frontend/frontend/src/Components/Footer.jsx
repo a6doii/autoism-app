@@ -40,7 +40,7 @@ const Footer = () => {
             <a href="https://twitter.com" aria-label="Twitter" target="_blank" rel="noreferrer">
               <FontAwesomeIcon icon={faTwitter} />
             </a>
-            <a href="https://instagram.com" aria-label="Instagram" target="_blank" rel="noreferrer">
+            <a href="https://www.instagram.com/autoism__/" aria-label="Instagram" target="_blank" rel="noreferrer">
               <FontAwesomeIcon icon={faInstagram} />
             </a>
           </div>
