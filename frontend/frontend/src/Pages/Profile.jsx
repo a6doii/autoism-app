@@ -21,7 +21,7 @@ const Profile = () => {
         fullName: `${user.firstname || ''} ${user.lastname || ''}`.trim(),
         email: user.email || '',
         dateOfBirth: user.dob || '',
-        sex: user.sex || 'male',
+        sex: user.sex || '',
       });
     }
   }, [user]);
@@ -173,6 +173,7 @@ const Profile = () => {
             onChange={(e) => setProfileData({ ...profileData, sex: e.target.value })}
             style={{ fontSize: 'clamp(0.875rem, 2vw, 1rem)', padding: 'clamp(0.5rem, 1.5vw, 0.75rem)' }}
           >
+            <option value="" disabled>{t.selectSex || '— Select —'}</option>
             <option value="male">{t.male}</option>
             <option value="female">{t.female}</option>
           </select>

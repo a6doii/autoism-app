@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -16,6 +16,12 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [trustDevice, setTrustDevice] = useState(false);
+  const errorRef = useRef(null);
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [error]);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -71,7 +77,7 @@ const Login = () => {
         <h1>{t.loginTitle || 'Welcome Back'}</h1>
         <p className="auth-sub">{t.loginSubtitle || 'Please sign in to your account'}</p>
         
-        {error && <div style={{ padding: '1rem', background: '#fee2e2', color: '#dc2626', borderRadius: '8px', marginBottom: '1rem' }}>{error}</div>}
+        {error && <div ref={errorRef} style={{ padding: '1rem', background: '#fee2e2', color: '#dc2626', borderRadius: '8px', marginBottom: '1rem' }}>{error}</div>}
         
         <form onSubmit={handleSubmit}>
           <div className="form-group" style={{ textAlign: 'left' }}>

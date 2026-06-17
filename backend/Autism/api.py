@@ -327,7 +327,7 @@ def cases():
     child_name = (data.get('child_name') or '').strip()
     child_dob = (data.get('child_dob') or '').strip()
     brief = (data.get('brief') or '').strip()
-    if not child_name or not child_dob or not brief:
+    if not child_name or not child_dob:
         return jsonify({'error': 'Please fill all case fields.'}), 400
 
     age_months = calculate_age_months(child_dob)

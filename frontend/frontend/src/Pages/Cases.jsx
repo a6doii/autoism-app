@@ -1,4 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPlus, faArrowLeft, faDownload, faFileMedical, faTrash, faPlay, faList, faChevronDown, faChevronUp
@@ -29,6 +31,12 @@ const Cases = () => {
   const [currentReport, setCurrentReport] = useState(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const errorRef = useRef(null);
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [error]);
   const [qchat, setQchat] = useState(emptyQchat);
 
   const [assessmentStep, setAssessmentStep] = useState('image');
@@ -352,308 +360,149 @@ const Cases = () => {
   const generatePDF = () => {
     if (!currentReport) return;
 
-    const isArabic = language === 'ar';
-    const isHighRisk = currentReport.prediction_label?.toLowerCase().includes('high') || 
+    const isHighRisk = currentReport.prediction_label?.toLowerCase().includes('high') ||
                        currentReport.prediction_label?.toLowerCase().includes('autism likelihood detected');
-    
-    // SPLIT THE VARIABLES HERE: 
-    // Solid colors for borders/text. Gradient for backgrounds only.
-    const themeColorSolid = isHighRisk ? '#dc2626' : '#059669';
-    const themeBgGradient = isHighRisk 
-      ? 'linear-gradient(135deg, #ff0000 0%, #7a1010 100%)' 
-      : 'linear-gradient(135deg, #4ce3ac 0%, #058059 100%)'; 
+    const accentColor = isHighRisk ? [220, 38, 38] : [5, 150, 105];
+    const riskLabel = isHighRisk ? 'HIGH RISK' : 'LOW RISK';
+    const childName = activeCase?.child_name || 'N/A';
+    const childDob = activeCase?.child_dob || 'N/A';
+    const reportDate = new Date(currentReport.created_at).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+    const riskPct = currentReport.combined_risk != null
+      ? `${(currentReport.combined_risk * 100).toFixed(1)}%`
+      : 'N/A';
 
-    const themeBg = isHighRisk ? '#fef2f2' : '#ecfdf5';    
-    // eslint-disable-next-line no-unused-vars
-    const themeBorder = isHighRisk ? '#fca5a5' : '#6ee7b7';
-    
-    const riskLabelEn = isHighRisk ? "HIGH RISK" : "LOW RISK";
-    const riskLabelAr = isHighRisk ? "خطر مرتفع" : "خطر منخفض";
-    const displayRiskLabel = isArabic ? riskLabelAr : riskLabelEn;
-    
-    const dateStr = new Date(currentReport.created_at).toLocaleDateString(isArabic ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    const displayText = isArabic ? translateReportToArabic(currentReport.report_text) : (currentReport.report_text || '');
-
-    // Safely extract demographics from the stored report text
     const extractDemo = (text, key) => {
       if (!text) return null;
       const regex = new RegExp(`${key}:\\s*([^\\n\\r]+)`, 'i');
       const match = text.match(regex);
       return match ? match[1].trim() : null;
     };
-
     const demSex = extractDemo(currentReport.report_text, 'Child sex') || qchat.child_sex || 'N/A';
     const demEthnicity = extractDemo(currentReport.report_text, 'Ethnicity') || qchat.child_ethnicity || 'N/A';
     const demJaundice = extractDemo(currentReport.report_text, 'Jaundice history') || qchat.jaundice || 'N/A';
     const demFamilyAsd = extractDemo(currentReport.report_text, 'Family ASD history') || qchat.family_asd || 'N/A';
 
-    const tr = (eng, ar, translationKey) => {
-        if (isArabic) return t[translationKey] || ar;
-        return t[translationKey] || eng;
-    };
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-    const translateVal = (val) => {
-        if (!val || val === 'N/A') return 'N/A';
-        if (!isArabic) {
-            return String(val).charAt(0).toUpperCase() + String(val).slice(1);
+    // ── Page 1 ──────────────────────────────────────────
+    doc.setFontSize(28); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+    doc.text('Auto-Ism', 20, 25);
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
+    doc.text('Early Autism Screening Report', 20, 33);
+    doc.setFontSize(9); doc.setTextColor(148, 163, 184);
+    doc.text('Cairo University FCAI 2026', 190, 20, { align: 'right' });
+    doc.text('Supervised by Dr. Elham Shawky', 190, 26, { align: 'right' });
+
+    doc.setDrawColor(...accentColor); doc.setLineWidth(0.8);
+    doc.line(20, 38, 190, 38);
+
+    doc.setFillColor(248, 250, 252); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3);
+    doc.roundedRect(20, 44, 170, 32, 2, 2, 'FD');
+
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 116, 139);
+    doc.text('PATIENT NAME', 28, 52);
+    doc.text('DATE OF ASSESSMENT', 115, 52);
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+    doc.text(childName, 28, 59);
+    doc.text(reportDate, 115, 59);
+
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 116, 139);
+    doc.text('DATE OF BIRTH', 28, 67);
+    doc.text('CASE REFERENCE', 115, 67);
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+    doc.text(childDob, 28, 74);
+    doc.text(`#${currentReport.case_id}`, 115, 74);
+
+    doc.setFillColor(...accentColor);
+    doc.roundedRect(20, 84, 170, 22, 3, 3, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+    doc.text('COMBINED RISK INDICATION', 105, 92, { align: 'center' });
+    doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+    doc.text(riskLabel, 105, 101, { align: 'center' });
+
+    doc.setTextColor(15, 23, 42); doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+    doc.text('Model Diagnostics', 20, 118);
+    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.5);
+    doc.line(20, 121, 190, 121);
+
+    autoTable(doc, {
+      startY: 124,
+      head: [['Assessment Component', 'Score']],
+      body: [
+        ['Q-CHAT-10 Questionnaire Analysis', `${currentReport.spark_score}/10`],
+        ['Facial Biometric Analysis', currentReport.image_score != null ? `${(currentReport.image_score * 100).toFixed(1)}%` : 'N/A'],
+        ['Final Weighted Probability', riskPct],
+      ],
+      headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 10, lineColor: [203, 213, 225], lineWidth: 0.3 },
+      bodyStyles: { textColor: [51, 65, 85], fontSize: 11, lineColor: [226, 232, 240], lineWidth: 0.2 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: { 0: { cellWidth: 135 }, 1: { cellWidth: 35, fontStyle: 'bold', halign: 'center' } },
+      didParseCell: (data) => {
+        if (data.row.index === 2 && data.section === 'body') {
+          data.cell.styles.textColor = accentColor;
+          data.cell.styles.fillColor = isHighRisk ? [254, 242, 242] : [236, 253, 245];
         }
-        const v = String(val).toLowerCase().trim();
-        const map = {
-            'male': t.male || 'ذكر',
-            'female': t.female || 'أنثى',
-            'yes': t.yes || 'نعم',
-            'no': t.no || 'لا',
-            'white-european': t.whiteEuropean || 'أبيض-أوروبي',
-            'asian': t.asian || 'آسيوي',
-            'middle eastern': t.middleEastern || 'شرق أوسطي',
-            'black': t.black || 'أسود',
-            'south asian': t.southAsian || 'جنوب آسيوي',
-            'hispanic': t.hispanic || 'من أصل إسباني',
-            'latino': t.latino || 'لاتيني',
-            'others': t.others || 'أخرى',
-            'mixed': t.mixed || 'مختلط',
-            'pacifica': t.pacifica || 'جزر المحيط الهادئ',
-            'native indian': t.nativeIndian || 'هندي أصلي'
-        };
-        return map[v] || val;
-    };
+      }
+    });
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert(t.allowPopups || "Please allow popups to generate the PDF.");
-      return;
-    }
+    doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3);
+    doc.line(20, 270, 190, 270);
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(148, 163, 184);
+    doc.text('This report is generated by an AI-based screening tool and does NOT constitute a medical diagnosis.', 20, 275);
+    doc.text('Results must be interpreted by a qualified healthcare professional. Consult a pediatrician for formal evaluation.', 20, 280);
 
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html lang="${isArabic ? 'ar' : 'en'}" dir="${isArabic ? 'rtl' : 'ltr'}">
-      <head>
-        <meta charset="UTF-8">
-        <title>Auto-Ism Report - ${activeCase?.child_name || ''}</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap');
-          
-          @page { size: A4; margin: 0; }
-          body { 
-            font-family: 'Cairo', sans-serif; 
-            margin: 0; 
-            background: #e2e8f0; 
-            -webkit-print-color-adjust: exact; 
-            print-color-adjust: exact; 
-          }
-          
-          .page {
-            width: 210mm;
-            min-height: 297mm;
-            padding: 20mm;
-            margin: 0 auto;
-            background: white;
-            box-sizing: border-box;
-            position: relative;
-            page-break-after: always;
-          }
-          .page:last-child { page-break-after: auto; }
+    // ── Page 2 ──────────────────────────────────────────
+    doc.addPage();
+    doc.setFontSize(28); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+    doc.text('Auto-Ism', 20, 25);
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
+    doc.text('Detailed Analysis & Demographics', 20, 33);
+    doc.setDrawColor(...accentColor); doc.setLineWidth(0.8);
+    doc.line(20, 38, 190, 38);
 
-          .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 3px solid ${themeColorSolid}; /* FIXED: Using solid color for border */
-            padding-bottom: 15px;
-            margin-bottom: 30px;
-          }
-          .header-left h1 { margin: 0; font-size: 32px; color: #0f172a; font-weight: 800; letter-spacing: -1px; }
-          .header-left p { margin: 5px 0 0; color: #64748b; font-size: 14px; }
-          .header-right { text-align: ${isArabic ? 'left' : 'right'}; font-size: 12px; color: #94a3b8; line-height: 1.5; }
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+    doc.text('Demographic Profile', 20, 50);
+    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.5);
+    doc.line(20, 53, 190, 53);
 
-          .patient-card {
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 30px;
-            background-color: #f8fafc;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-          }
-          .info-block { display: flex; flex-direction: column; }
-          .info-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; font-weight: 600; margin-bottom: 4px; }
-          .info-value { font-size: 16px; color: #0f172a; font-weight: 600; }
+    autoTable(doc, {
+      startY: 56,
+      body: [
+        ['Biological Sex', String(demSex).charAt(0).toUpperCase() + String(demSex).slice(1)],
+        ['Ethnicity', String(demEthnicity).charAt(0).toUpperCase() + String(demEthnicity).slice(1)],
+        ['History of Jaundice', String(demJaundice).charAt(0).toUpperCase() + String(demJaundice).slice(1)],
+        ['Family ASD History', String(demFamilyAsd).charAt(0).toUpperCase() + String(demFamilyAsd).slice(1)],
+      ],
+      bodyStyles: { textColor: [51, 65, 85], fontSize: 11, lineColor: [226, 232, 240], lineWidth: 0.2 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: { 0: { cellWidth: 80, fontStyle: 'bold', textColor: [100, 116, 139] }, 1: { cellWidth: 90 } },
+    });
 
-          .risk-banner {
-            background: ${themeBgGradient}; /* FIXED: Using gradient exclusively for background */
-            color: white !important;
-            padding: 25px;
-            border-radius: 8px;
-            text-align: center;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-          }
-          .risk-title { font-size: 14px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.9; margin-bottom: 5px; }
-          .risk-status { font-size: 32px; font-weight: 800; letter-spacing: 1px; margin: 0; }
+    const afterTableY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+    doc.text('Clinical Recommendation', 20, afterTableY);
+    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.5);
+    doc.line(20, afterTableY + 3, 190, afterTableY + 3);
 
-          h2.section-title { font-size: 20px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 20px; }
-          
-          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #cbd5e1; }
-          th, td { padding: 16px; text-align: start; border-bottom: 1px solid #e2e8f0; }
-          th { background-color: #f1f5f9; color: #475569; font-weight: 600; font-size: 14px; text-transform: uppercase; }
-          td { color: #334155; font-size: 15px; }
-          tr:last-child td { border-bottom: none; }
-          
-          .highlight-row { background-color: ${themeBg}; }
-          .highlight-row td { color: ${themeColorSolid}; font-weight: 800; font-size: 18px; } /* FIXED: Solid color for text */
+    doc.setDrawColor(...accentColor); doc.setLineWidth(1.2);
+    const textStartY = afterTableY + 10;
+    doc.line(20, textStartY, 20, textStartY + 80);
 
-          .analysis-text {
-            line-height: 1.8;
-            font-size: 15px;
-            color: #334155;
-            background: #fff;
-            padding: 20px;
-            border-left: ${isArabic ? 'none' : `4px solid ${themeColorSolid}`}; /* FIXED: Solid color for border */
-            border-right: ${isArabic ? `4px solid ${themeColorSolid}` : 'none'}; /* FIXED: Solid color for border */
-            border-radius: ${isArabic ? '8px 0 0 8px' : '0 8px 8px 0'};
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            white-space: pre-wrap;
-          }
+    const reportText = currentReport.report_text || '';
+    const textLines = doc.splitTextToSize(reportText, 160);
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor(51, 65, 85);
+    doc.text(textLines, 25, textStartY + 6);
 
-          .footer {
-            position: absolute;
-            bottom: 20mm;
-            left: 20mm;
-            right: 20mm;
-            border-top: 1px solid #cbd5e1;
-            padding-top: 15px;
-            font-size: 11px;
-            color: #94a3b8;
-            text-align: justify;
-            line-height: 1.5;
-          }
-          .footer-date { text-align: center; margin-top: 10px; font-weight: 600; }
-          
-          @media print { body { background: white; } .page { box-shadow: none; margin: 0; } }
-        </style>
-      </head>
-      <body>
+    doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3);
+    doc.line(20, 270, 190, 270);
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(148, 163, 184);
+    doc.text(`Generated: ${reportDate}`, 105, 276, { align: 'center' });
 
-        <div class="page">
-          <div class="header">
-            <div class="header-left">
-              <h1>Auto-Ism</h1>
-              <p>${tr('Early Autism Screening Report', 'تقرير الفحص المبكر للتوحد', 'pdfTitle')}</p>
-            </div>
-            <div class="header-right">
-              ${tr('Cairo University FCAI 2026', 'جامعة القاهرة - كلية الحاسبات والذكاء الاصطناعي 2026', 'cairoUniv')}<br>
-              ${tr('Supervised by Dr. Elham Shawky', 'إشراف د. إلهام شوقي', 'supervisedBy')}
-            </div>
-          </div>
-
-          <div class="patient-card">
-            <div class="info-block">
-              <span class="info-label">${tr('Patient Name', 'اسم المريض', 'childName')}</span>
-              <span class="info-value">${activeCase?.child_name || 'N/A'}</span>
-            </div>
-            <div class="info-block">
-              <span class="info-label">${tr('Date of Assessment', 'تاريخ التقييم', 'date')}</span>
-              <span class="info-value">${dateStr}</span>
-            </div>
-            <div class="info-block">
-              <span class="info-label">${tr('DOB', 'تاريخ الميلاد', 'dob')}</span>
-              <span class="info-value">${activeCase?.child_dob || 'N/A'}</span>
-            </div>
-            <div class="info-block">
-              <span class="info-label">${tr('Case Reference', 'رقم الحالة', 'caseId')}</span>
-              <span class="info-value">#${currentReport.case_id}</span>
-            </div>
-          </div>
-
-          <div class="risk-banner">
-            <div class="risk-title">${tr('Combined Risk Indication', 'مؤشر المخاطر المجمعة', 'combinedRisk')}</div>
-            <div class="risk-status">${displayRiskLabel}</div>
-          </div>
-
-          <h2 class="section-title">${tr('Model Diagnostics', 'تشخيصات النموذج', 'modelDiagnostics')}</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>${tr('Assessment Component', 'مكون التقييم', 'assessmentComponent')}</th>
-                <th>${tr('Calculated Score', 'الدرجة المحسوبة', 'calculatedScore')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>${tr('Q-CHAT-10 Questionnaire Analysis', 'تحليل استبيان Q-CHAT-10', 'qchatAnalysis')}</td>
-                <td>${currentReport.spark_score}/10</td>
-              </tr>
-              <tr>
-                <td>${tr('Facial Biometric Analysis', 'التحليل البيومتري للوجه', 'facialAnalysis')}</td>
-                <td>${currentReport.image_score != null ? (currentReport.image_score * 100).toFixed(1) + '%' : 'N/A'}</td>
-              </tr>
-              <tr class="highlight-row">
-                <td>${tr('Final Weighted Probability', 'الاحتمالية النهائية المرجحة', 'finalWeightedProb')}</td>
-                <td>${riskPercent}</td>
-              </tr>
-            </tbody>
-          </table>
-          
-          <div class="footer">
-            ${isArabic
-              ? "هذا التقرير هو أداة مساعدة قائمة على الذكاء الاصطناعي ولا يشكل تشخيصاً طبياً رسمياً. صُمم Auto-Ism لدعم المتخصصين وليس لاستبدالهم. يجب عرض هذه النتائج على طبيب أطفال أو أخصائي توحد معتمد."
-              : "This report is generated by an AI-based screening tool and does NOT constitute a medical diagnosis. Auto-Ism is a decision-support system. Results must be interpreted by a qualified healthcare professional. Consult a pediatrician for formal evaluation."}
-          </div>
-        </div>
-
-        <div class="page">
-          <div class="header">
-            <div class="header-left">
-              <h1>Auto-Ism</h1>
-              <p>${tr('Detailed Analysis & Demographics', 'التحليل المفصل والبيانات الديموغرافية', 'detailedAnalysis')}</p>
-            </div>
-          </div>
-
-          <h2 class="section-title">${tr('Demographic Profile', 'الملف الديموغرافي', 'demographicProfile')}</h2>
-          <table>
-            <tbody>
-              <tr>
-                <td style="width: 50%; font-weight: 600; color: #64748b;">${tr('Biological Sex', 'الجنس البيولوجي', 'bioSex')}</td>
-                <td>${translateVal(demSex)}</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 600; color: #64748b;">${tr('Ethnicity', 'العرق', 'ethnicity')}</td>
-                <td>${translateVal(demEthnicity)}</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 600; color: #64748b;">${tr('History of Jaundice', 'تاريخ الإصابة باليرقان', 'historyJaundice')}</td>
-                <td>${translateVal(demJaundice)}</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 600; color: #64748b;">${tr('Family ASD History', 'تاريخ العائلة مع التوحد', 'familyASDHistory')}</td>
-                <td>${translateVal(demFamilyAsd)}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <h2 class="section-title">${tr('Clinical Recommendation', 'التوصية السريرية', 'assessmentResults')}</h2>
-          <div class="analysis-text">${displayText}</div>
-
-          <div class="footer">
-             <div class="footer-date">${tr('Generated', 'تم الإنشاء بواسطة', 'generatedBy')}: ${dateStr}</div>
-          </div>
-        </div>
-
-        <script>
-          window.onload = () => {
-            setTimeout(() => {
-              window.print();
-              window.onafterprint = () => window.close(); 
-            }, 500);
-          };
-        </script>
-      </body>
-      </html>
-    `;
-    printWindow.document.open();
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
+    const fileName = `Auto-Ism-Report-${childName.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+    doc.save(fileName);
   };
 
   const displayedCases = cases.slice(0, displayCount);
@@ -666,7 +515,7 @@ const Cases = () => {
   return (
     <div className="cases-page" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="container">
-        {error && <div className="error-message">{error}</div>}
+        {error && <div ref={errorRef} className="error-message">{error}</div>}
         {message && <div className="success-message">{message}</div>}
 
         {view === 'list' && (

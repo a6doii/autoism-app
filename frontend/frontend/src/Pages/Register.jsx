@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -126,6 +126,13 @@ const Register = () => {
     }
   };
 
+  const errorRef = useRef(null);
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [error]);
+
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendStatus, setResendStatus] = useState('');
 
@@ -161,7 +168,7 @@ const Register = () => {
           <h1>{t.createAccount}</h1>
           <p className="auth-sub">{t.joinNow}</p>
           
-          {error && <div style={{ padding: '0.8rem', background: '#fee2e2', color: '#dc2626', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.9rem' }}>{error}</div>}
+          {error && <div ref={errorRef} style={{ padding: '0.8rem', background: '#fee2e2', color: '#dc2626', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.9rem' }}>{error}</div>}
           
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
@@ -181,7 +188,12 @@ const Register = () => {
               <div className="form-group"><label>{t.lastName}</label><input type="text" name="lastname" className="form-control" value={formData.lastname} onChange={handleChange} required /></div>
             </div>
             <div className="form-group" style={{ textAlign: 'left' }}><label>{t.email}</label><input type="email" name="email" className="form-control" value={formData.email} onChange={handleChange} required /></div>
-            
+
+            <div className="form-group-row">
+              <div className="form-group"><label>{t.password}</label><input type={showPasswords ? "text" : "password"} name="password" className="form-control" value={formData.password} onChange={handleChange} required /></div>
+              <div className="form-group"><label>{t.confirmPassword}</label><input type={showPasswords ? "text" : "password"} name="confirmPassword" className="form-control" value={formData.confirmPassword} onChange={handleChange} required /></div>
+            </div>
+
             <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #e2e8f0', textAlign: 'left' }}>
               <p style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '8px' }}>{language === 'ar' ? 'متطلبات كلمة المرور:' : 'Password Requirements:'}</p>
               <ConditionItem met={checks.length} label={t.passwordTooShort} />
@@ -189,11 +201,6 @@ const Register = () => {
               <ConditionItem met={checks.lower} label={language === 'ar' ? 'حرف صغير واحد على الأقل' : 'At least one lowercase letter'} />
               <ConditionItem met={checks.number} label={t.passwordNumber} />
               <ConditionItem met={checks.special} label={language === 'ar' ? 'رمز خاص واحد على الأقل (#$@!)' : 'At least one special character (#$@!)'} />
-            </div>
-
-            <div className="form-group-row">
-              <div className="form-group"><label>{t.password}</label><input type={showPasswords ? "text" : "password"} name="password" className="form-control" value={formData.password} onChange={handleChange} required /></div>
-              <div className="form-group"><label>{t.confirmPassword}</label><input type={showPasswords ? "text" : "password"} name="confirmPassword" className="form-control" value={formData.confirmPassword} onChange={handleChange} required /></div>
             </div>
 
             <button type="submit" className="btn btn-primary full-width" disabled={loading}>{loading ? '...' : t.register}</button>
