@@ -742,7 +742,26 @@ const Cases = () => {
             </div>
             <div className="form-group">
               <label>{t.dateOfBirth}</label>
-              <input type="date" className="form-control" value={form.child_dob} onChange={e => setForm({...form, child_dob: e.target.value})} required />
+              <input
+                type="date"
+                className="form-control"
+                value={form.child_dob}
+                max={new Date().toISOString().split('T')[0]}
+                onChange={e => {
+                  const dob = e.target.value;
+                  setForm({...form, child_dob: dob});
+                  if (dob) {
+                    const months = (new Date().getFullYear() - new Date(dob).getFullYear()) * 12
+                      + (new Date().getMonth() - new Date(dob).getMonth());
+                    setError(months > 36
+                      ? (language === 'ar'
+                          ? `هذا التقييم متاح فقط للأطفال حتى 36 شهرًا. عمر هذا الطفل ${months} شهرًا.`
+                          : `This assessment is only available for children up to 36 months old. This child is ${months} months old.`)
+                      : '');
+                  }
+                }}
+                required
+              />
             </div>
             <div className="form-group">
               <label>{t.briefNotes} <span style={{color:'var(--text-muted)', fontSize:'0.85rem'}}>({t.optional})</span></label>
