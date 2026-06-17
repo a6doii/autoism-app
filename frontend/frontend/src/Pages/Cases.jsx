@@ -801,7 +801,7 @@ const Cases = () => {
           <div className="report-container">
             <button className="back-button" onClick={() => setView('list')}><FontAwesomeIcon icon={faArrowLeft} /> {t.backToCases}</button>
             <div className="report-header">
-              {!isHighRisk && (
+              {!(currentReport.prediction_label?.toLowerCase().includes('high') || currentReport.prediction_label?.toLowerCase().includes('autism likelihood detected')) && (
                 <img src={mascotHappyResult} alt="mascot" style={{ width: '110px', objectFit: 'contain', filter: 'drop-shadow(0 6px 20px rgba(56,189,248,0.35))', animation: 'mascotFloat 4s ease-in-out infinite', marginBottom: '0.5rem' }} />
               )}
               <div className="score-circle">{riskPercent}</div>
