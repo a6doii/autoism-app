@@ -180,32 +180,30 @@ const Profile = () => {
         </div>
         
         <div style={{ display: 'flex', gap: 'clamp(0.5rem, 2vw, 1rem)', marginTop: 'clamp(0.5rem, 2vw, 1rem)' }}>
-          <button 
-            className="btn btn-secondary" 
-            style={{ 
-              flex: 1, 
+          <button
+            className="btn btn-secondary"
+            style={{
+              flex: 1,
               fontSize: 'clamp(0.875rem, 2vw, 1rem)',
               padding: 'clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 3vw, 1.5rem)'
-            }} 
+            }}
             onClick={handleSave}
           >
             {isEditing ? t.saveProfile : t.editProfile}
           </button>
-          
-          {isEditing && (
-            <button 
-              className="btn btn-primary" 
-              style={{ 
-                flex: 1,
-                fontSize: 'clamp(0.875rem, 2vw, 1rem)',
-                padding: 'clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 3vw, 1.5rem)'
-              }} 
-              onClick={handleChangePassword}
-              type="button"
-            >
-              {t.changePassword}
-            </button>
-          )}
+
+          <button
+            className="btn btn-primary"
+            style={{
+              flex: 1,
+              fontSize: 'clamp(0.875rem, 2vw, 1rem)',
+              padding: 'clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 3vw, 1.5rem)'
+            }}
+            onClick={handleChangePassword}
+            type="button"
+          >
+            {t.changePassword}
+          </button>
         </div>
       </div>
     </div>

@@ -4,6 +4,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLock, faEye, faEyeSlash, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../lib/api';
 import { useLanguage } from '../context/LanguageContext';
+import { auth } from '../lib/firebase';
+import { reauthenticateWithCredential, EmailAuthProvider, updatePassword } from 'firebase/auth';
 import '../CSS/ChangePassword.css';
 
 const ChangePassword = () => {
@@ -48,6 +50,12 @@ const ChangePassword = () => {
     setMessage({ type: '', text: '' });
 
     try {
+      // For regular (Firebase) users, re-authenticate so updatePassword works later
+      if (auth.currentUser) {
+        const credential = EmailAuthProvider.credential(auth.currentUser.email, passwordData.oldPassword);
+        await reauthenticateWithCredential(auth.currentUser, credential);
+      }
+
       const response = await api('/user/verify-password', {
         method: 'POST',
         body: JSON.stringify({ password: passwordData.oldPassword })
@@ -58,7 +66,11 @@ const ChangePassword = () => {
         setMessage({ type: 'success', text: t.passwordVerified });
       }
     } catch (err) {
-      setMessage({ type: 'error', text: t.incorrectPassword });
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setMessage({ type: 'error', text: t.incorrectPassword });
+      } else {
+        setMessage({ type: 'error', text: err.message || t.incorrectPassword });
+      }
     } finally {
       setLoading(false);
     }
@@ -98,6 +110,12 @@ const ChangePassword = () => {
     setMessage({ type: '', text: '' });
 
     try {
+      // Update Firebase password for regular (non-admin) users
+      if (auth.currentUser) {
+        await updatePassword(auth.currentUser, passwordData.newPassword);
+      }
+
+      // Update Flask backend password (always — covers admin too)
       const response = await api('/user/change-password', {
         method: 'POST',
         body: JSON.stringify({
