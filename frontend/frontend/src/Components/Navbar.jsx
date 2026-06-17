@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { api } from '../lib/api';
+import { api, staticUrl } from '../lib/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserCircle } from '@fortawesome/free-solid-svg-icons';
 
@@ -107,7 +107,7 @@ const Navbar = () => {
                   <Link to="/profile" className="profile-link" onClick={closeMenu}>
                     {user.profile_image ? (
                       <img
-                        src={user.profile_image}
+                        src={staticUrl(user.profile_image)}
                         alt={`${user.firstname}'s profile`}
                         className="profile-image"
                       />

@@ -1,4 +1,11 @@
 const BASE_URL = process.env.REACT_APP_API_URL || '';
+const STATIC_BASE = process.env.REACT_APP_API_URL || 'https://autoism-backend-production.up.railway.app';
+
+export function staticUrl(path) {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  return `${STATIC_BASE}${path}`;
+}
 
 export function setAuthToken(token) {
   if (token) localStorage.setItem('auth_token', token);

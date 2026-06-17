@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../lib/api';
+import { api, staticUrl } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -97,7 +97,7 @@ const Profile = () => {
           {uploadingImage ? (
             <i className="fas fa-spinner fa-spin"></i>
           ) : user?.profile_image ? (
-            <img src={user.profile_image} alt={t.myProfile} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={staticUrl(user.profile_image)} alt={t.myProfile} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
             <FontAwesomeIcon icon={faUser} />
           )}
