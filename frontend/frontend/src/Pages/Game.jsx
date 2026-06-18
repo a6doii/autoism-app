@@ -1,27 +1,80 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPuzzlePiece, faShapes, faFaceLaughBeam, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
+import {
+  faPuzzlePiece, faShapes, faFaceLaughBeam, faTriangleExclamation,
+  faFaceSmile, faHandshake, faListCheck, faShuffle,
+  faVolumeHigh, faBullseye, faPersonWalking,
+} from '@fortawesome/free-solid-svg-icons';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../lib/api';
-import RecognitionGame from './Games/RecognitionGame';
-import ShapeMatchGame from './Games/ShapeMatchGame';
-import EmotionGame from './Games/EmotionGame';
+import RecognitionGame   from './Games/RecognitionGame';
+import ShapeMatchGame    from './Games/ShapeMatchGame';
+import EmotionGame       from './Games/EmotionGame';
+import ExpressionsGame   from './Games/ExpressionsGame';
+import SocialGame        from './Games/SocialGame';
+import PatternGame       from './Games/PatternGame';
+import RoutineGame       from './Games/RoutineGame';
+import SoundsGame        from './Games/SoundsGame';
+import BubblesGame       from './Games/BubblesGame';
+import BodyLanguageGame  from './Games/BodyLanguageGame';
 import '../CSS/Game.css';
 
 const GAMES = [
-  { key: 'recognition', icon: faPuzzlePiece, color: '#3b82f6', titleKey: 'gameIntroTitle', descKey: 'gameIntroDesc' },
-  { key: 'shapes', icon: faShapes, color: '#a855f7', titleKey: 'shapeGameTitle', descKey: 'shapeGameDesc' },
-  { key: 'emotions', icon: faFaceLaughBeam, color: '#f59e0b', titleKey: 'emotionGameTitle', descKey: 'emotionGameDesc' },
+  // ── existing ──────────────────────────────────────────────────────────────
+  { key: 'recognition', icon: faPuzzlePiece,     color: '#3b82f6',
+    en_title: 'Recognition',      ar_title: 'التعرف',
+    en_desc:  'Match the right items together.', ar_desc: 'طابق العناصر الصحيحة معاً.',
+    titleKey: 'gameIntroTitle', descKey: 'gameIntroDesc' },
+
+  { key: 'shapes',      icon: faShapes,           color: '#a855f7',
+    en_title: 'Shape Match',      ar_title: 'مطابقة الأشكال',
+    en_desc:  'Match shapes by color and form.', ar_desc: 'طابق الأشكال حسب اللون والشكل.',
+    titleKey: 'shapeGameTitle', descKey: 'shapeGameDesc' },
+
+  { key: 'emotions',    icon: faFaceLaughBeam,    color: '#f59e0b',
+    en_title: 'Emotion Match',    ar_title: 'مطابقة المشاعر',
+    en_desc:  'Name the emotion shown.',         ar_desc: 'سمِّ الشعور المعروض.',
+    titleKey: 'emotionGameTitle', descKey: 'emotionGameDesc' },
+
+  // ── new ───────────────────────────────────────────────────────────────────
+  { key: 'expressions', icon: faFaceSmile,        color: '#ec4899',
+    en_title: 'Expressions',      ar_title: 'التعبيرات',
+    en_desc:  'Read a situation and pick the right feeling.', ar_desc: 'اقرأ الموقف واختر الشعور الصحيح.' },
+
+  { key: 'social',      icon: faHandshake,        color: '#06b6d4',
+    en_title: 'Social Skills',    ar_title: 'المهارات الاجتماعية',
+    en_desc:  'Choose the kindest thing to do.', ar_desc: 'اختر التصرف الأكثر لطفاً.' },
+
+  { key: 'pattern',     icon: faListCheck,        color: '#8b5cf6',
+    en_title: 'Patterns',         ar_title: 'الأنماط',
+    en_desc:  'Complete the missing piece.',     ar_desc: 'أكمل الجزء الناقص.' },
+
+  { key: 'routine',     icon: faShuffle,          color: '#f97316',
+    en_title: 'Daily Routine',    ar_title: 'الروتين اليومي',
+    en_desc:  'Put the daily steps in order.',   ar_desc: 'رتّب الخطوات اليومية بالترتيب الصحيح.' },
+
+  { key: 'sounds',      icon: faVolumeHigh,       color: '#10b981',
+    en_title: 'Animal Sounds',    ar_title: 'أصوات الحيوانات',
+    en_desc:  'Match the sound to the animal.',  ar_desc: 'طابق الصوت مع الحيوان.' },
+
+  { key: 'bubbles',     icon: faBullseye,         color: '#ef4444',
+    en_title: 'Focus Bubbles',    ar_title: 'فقاعات التركيز',
+    en_desc:  'Pop only the target bubbles!',    ar_desc: 'انقر فقط على الفقاعات المطلوبة!' },
+
+  { key: 'bodylanguage',icon: faPersonWalking,    color: '#64748b',
+    en_title: 'Body Language',    ar_title: 'لغة الجسد',
+    en_desc:  'What does this body language mean?', ar_desc: 'ماذا تعني لغة الجسد هذه؟' },
 ];
 
 const Game = () => {
   const { t, language } = useLanguage();
-  const [loading, setLoading] = useState(true);
-  const [cases, setCases] = useState([]);
+  const ar = language === 'ar';
+  const [loading, setLoading]       = useState(true);
+  const [cases, setCases]           = useState([]);
   const [selectedCaseId, setSelectedCaseId] = useState('');
   const [activeGame, setActiveGame] = useState(null);
-  const [saveError, setSaveError] = useState('');
+  const [saveError, setSaveError]   = useState('');
 
   useEffect(() => {
     api('/cases')
@@ -52,7 +105,7 @@ const Game = () => {
 
   if (cases.length === 0) {
     return (
-      <div className="game-shell" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="game-shell" dir={ar ? 'rtl' : 'ltr'}>
         <div className="no-cases-alert">
           <FontAwesomeIcon icon={faTriangleExclamation} className="no-cases-icon" />
           <h2>{t.noCaseForGamesTitle}</h2>
@@ -64,19 +117,26 @@ const Game = () => {
   }
 
   if (activeGame) {
-    const commonProps = { onFinish: saveScore, onBack: () => setActiveGame(null) };
+    const props = { onFinish: saveScore, onBack: () => setActiveGame(null) };
     return (
       <>
         {saveError && <p style={{ textAlign: 'center', color: 'var(--danger)' }}>{saveError}</p>}
-        {activeGame === 'recognition' && <RecognitionGame {...commonProps} />}
-        {activeGame === 'shapes' && <ShapeMatchGame {...commonProps} />}
-        {activeGame === 'emotions' && <EmotionGame {...commonProps} />}
+        {activeGame === 'recognition'  && <RecognitionGame  {...props} />}
+        {activeGame === 'shapes'       && <ShapeMatchGame   {...props} />}
+        {activeGame === 'emotions'     && <EmotionGame      {...props} />}
+        {activeGame === 'expressions'  && <ExpressionsGame  {...props} />}
+        {activeGame === 'social'       && <SocialGame       {...props} />}
+        {activeGame === 'pattern'      && <PatternGame      {...props} />}
+        {activeGame === 'routine'      && <RoutineGame      {...props} />}
+        {activeGame === 'sounds'       && <SoundsGame       {...props} />}
+        {activeGame === 'bubbles'      && <BubblesGame      {...props} />}
+        {activeGame === 'bodylanguage' && <BodyLanguageGame {...props} />}
       </>
     );
   }
 
   return (
-    <div className="game-shell" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="game-shell" dir={ar ? 'rtl' : 'ltr'}>
       <div className="games-hub-header">
         <h1>{t.playAndLearn}</h1>
         <p>{t.gamesHubSubtitle}</p>
@@ -93,10 +153,11 @@ const Game = () => {
 
       <div className="games-grid">
         {GAMES.map((g) => (
-          <button key={g.key} className="game-card" style={{ '--game-color': g.color }} onClick={() => setActiveGame(g.key)}>
+          <button key={g.key} className="game-card" style={{ '--game-color': g.color }}
+            onClick={() => setActiveGame(g.key)}>
             <div className="game-card-icon"><FontAwesomeIcon icon={g.icon} /></div>
-            <h3>{t[g.titleKey]}</h3>
-            <p>{t[g.descKey]}</p>
+            <h3>{g.titleKey ? t[g.titleKey] : (ar ? g.ar_title : g.en_title)}</h3>
+            <p>{g.descKey  ? t[g.descKey]  : (ar ? g.ar_desc  : g.en_desc)}</p>
           </button>
         ))}
       </div>
