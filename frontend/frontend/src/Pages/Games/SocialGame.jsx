@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { useLanguage } from '../../context/LanguageContext';
 import confetti from 'canvas-confetti';
+import { sounds } from '../../lib/sounds';
 import mascotExcited from '../../Assets/mascot_excited.png';
 import MascotSparkle from '../../Components/MascotSparkle';
 
@@ -119,14 +120,18 @@ const SocialGame = ({ onFinish, onBack }) => {
     const correct = rounds[ri].opts[idx].correct;
     if (correct) {
       setScore(s => s + 1); setStreak(s => s + 1); setStatus('correct');
+      sounds.correct();
       confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
-    } else { setStreak(0); setStatus('wrong'); }
+    } else { setStreak(0); setStatus('wrong'); sounds.wrong(); }
   };
 
   const next = () => {
     if (ri + 1 >= TOTAL) {
       setState('gameover');
-      if (score / TOTAL >= 0.5) confetti({ particleCount: 200, spread: 120, origin: { y: 0.4 }, zIndex: 1000 });
+      const pctSoc = score / TOTAL;
+      if (pctSoc >= 0.8) { sounds.win(); confetti({ particleCount: 200, spread: 120, origin: { y: 0.4 }, zIndex: 1000 }); }
+      else if (pctSoc >= 0.5) { sounds.pass(); confetti({ particleCount: 200, spread: 120, origin: { y: 0.4 }, zIndex: 1000 }); }
+      else { sounds.lose(); }
       onFinish && onFinish({ score, maxScore: TOTAL, level: 'standard' });
     } else {
       setRi(i => i + 1); setAnswered(false); setSelectedIdx(null); setStatus('');

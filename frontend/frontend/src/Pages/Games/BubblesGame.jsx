@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { useLanguage } from '../../context/LanguageContext';
 import confetti from 'canvas-confetti';
+import { sounds } from '../../lib/sounds';
 import mascotExcited from '../../Assets/mascot_excited.png';
 import MascotSparkle from '../../Components/MascotSparkle';
 
@@ -87,8 +88,10 @@ const BubblesGame = ({ onFinish, onBack }) => {
         setState('gameover');
         const finalScore = totalScore + roundScore;
         const maxScore = ROUND_CONFIGS.reduce((acc, c) => acc + c.pool.filter(e => e === c.target).length, 0);
-        if (finalScore / maxScore >= 0.5)
-          confetti({ particleCount: 200, spread: 120, origin: { y: 0.4 }, zIndex: 1000 });
+        const pctB = finalScore / maxScore;
+        if (pctB >= 0.8) { sounds.win(); confetti({ particleCount: 200, spread: 120, origin: { y: 0.4 }, zIndex: 1000 }); }
+        else if (pctB >= 0.5) { sounds.pass(); confetti({ particleCount: 200, spread: 120, origin: { y: 0.4 }, zIndex: 1000 }); }
+        else { sounds.lose(); }
         onFinish && onFinish({ score: finalScore, maxScore, level: 'standard' });
       } else {
         setRound(r => {
@@ -115,9 +118,11 @@ const BubblesGame = ({ onFinish, onBack }) => {
 
     if (bubble.emoji === config.target) {
       setHits(h => h + 1);
+      sounds.correct();
       confetti({ particleCount: 40, spread: 50, origin: { y: 0.5 }, colors: ['#a855f7','#3b82f6','#10b981'] });
     } else {
       setMisses(m => m + 1);
+      sounds.wrong();
     }
     setCurrentIdx(i => i + 1);
   };

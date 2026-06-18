@@ -5,6 +5,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import confetti from 'canvas-confetti';
 import mascotExcited from '../../Assets/mascot_excited.png';
 import MascotSparkle from '../../Components/MascotSparkle';
+import { sounds } from '../../lib/sounds';
 
 const TOTAL = 8;
 const POINTS = 1;
@@ -71,10 +72,12 @@ const EmotionGame = ({ onFinish, onBack }) => {
       setScore((s) => s + POINTS);
       setStreak((s) => s + 1);
       setStatus('correct');
+      sounds.correct();
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#a855f7'] });
     } else {
       setStreak(0);
       setStatus('wrong');
+      sounds.wrong();
     }
   };
 
@@ -83,9 +86,10 @@ const EmotionGame = ({ onFinish, onBack }) => {
   const nextRound = () => {
     if (ri + 1 >= TOTAL) {
       setGameState('gameover');
-      if (score / maxPts >= 0.5) {
-        confetti({ particleCount: 250, spread: 120, origin: { y: 0.4 }, zIndex: 1000 });
-      }
+      const pctE = score / maxPts;
+      if (pctE >= 0.8) { sounds.win(); confetti({ particleCount: 250, spread: 120, origin: { y: 0.4 }, zIndex: 1000 }); }
+      else if (pctE >= 0.5) { sounds.pass(); confetti({ particleCount: 250, spread: 120, origin: { y: 0.4 }, zIndex: 1000 }); }
+      else { sounds.lose(); }
       onFinish && onFinish({ score, maxScore: maxPts, level: 'standard' });
     } else {
       setRi((i) => i + 1);

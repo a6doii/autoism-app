@@ -5,6 +5,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import confetti from 'canvas-confetti';
 import mascotExcited from '../../Assets/mascot_excited.png';
 import MascotSparkle from '../../Components/MascotSparkle';
+import { sounds } from '../../lib/sounds';
 
 const TOTAL = 10;
 
@@ -122,7 +123,7 @@ const RecognitionGame = ({ onFinish, onBack }) => {
       setScore(s => s + pts);
       setStreak(s => s + 1);
       setStatus('correct');
-
+      sounds.correct();
       confetti({
         particleCount: 100,
         spread: 70,
@@ -133,6 +134,7 @@ const RecognitionGame = ({ onFinish, onBack }) => {
     } else {
       setStreak(0);
       setStatus('wrong');
+      sounds.wrong();
     }
   };
 
@@ -141,14 +143,10 @@ const RecognitionGame = ({ onFinish, onBack }) => {
       setGameState('gameover');
 
       const maxPts = TOTAL * (diff === 'hard' ? 3 : diff === 'medium' ? 2 : 1);
-      if ((score / maxPts) >= 0.5) {
-        confetti({
-          particleCount: 250,
-          spread: 120,
-          origin: { y: 0.4 },
-          zIndex: 1000
-        });
-      }
+      const pct = score / maxPts;
+      if (pct >= 0.8) { sounds.win(); confetti({ particleCount: 250, spread: 120, origin: { y: 0.4 }, zIndex: 1000 }); }
+      else if (pct >= 0.5) { sounds.pass(); confetti({ particleCount: 250, spread: 120, origin: { y: 0.4 }, zIndex: 1000 }); }
+      else { sounds.lose(); }
       onFinish && onFinish({ score, maxScore: maxPts, level: diff });
     } else {
       setQi(i => i + 1);
