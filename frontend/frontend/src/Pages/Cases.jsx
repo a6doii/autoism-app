@@ -10,6 +10,7 @@ import { useLanguage } from '../context/LanguageContext';
 import '../CSS/Cases.css';
 import mascotThinking from '../Assets/mascot_thinking.png';
 import mascotHappyResult from '../Assets/mascot_happy_result.png';
+import mascot from '../Assets/mascot.png';
 import MascotSparkle from '../Components/MascotSparkle';
 
 const answerLetters = ['A', 'B', 'C', 'D', 'E'];
@@ -864,7 +865,10 @@ const Cases = () => {
         {view === 'list' && (
           <div>
             <div className="list-header">
-              <h2>{t.myCases}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <MascotSparkle src={mascot} alt="mascot" width="70px" />
+                <h2 style={{ margin: 0 }}>{t.myCases}</h2>
+              </div>
               <button className="btn btn-primary" onClick={() => setView('create')}>
                 <FontAwesomeIcon icon={faPlus} /> {t.createNewCase}
               </button>
