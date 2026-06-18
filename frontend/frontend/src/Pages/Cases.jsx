@@ -739,48 +739,25 @@ const Cases = () => {
 </body>
 </html>`;
 
-    // Inject Cairo into the real document head so the browser actually loads it
-    if (!document.querySelector('link[href*="Cairo"]')) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap';
-      document.head.appendChild(link);
+    // Inject auto-print script into the HTML so the browser prints after fonts load
+    const printableHtml = htmlContent.replace('</body>', `
+<script>
+  document.fonts.ready.then(function() {
+    setTimeout(function() { window.print(); }, 800);
+  });
+</script>
+</body>`);
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert(language === 'ar'
+        ? 'يرجى السماح بالنوافذ المنبثقة لهذا الموقع لتحميل التقرير العربي.'
+        : 'Please allow popups for this site to open the Arabic report.');
+      return;
     }
-
-    // Render HTML → canvas → PDF
-    const container = document.createElement('div');
-    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:white;font-family:Cairo,sans-serif;direction:rtl;';
-    container.innerHTML = htmlContent;
-    document.body.appendChild(container);
-
-    // Wait for ALL Cairo weights to be ready before capturing
-    await document.fonts.ready;
-    await Promise.all([
-      document.fonts.load('400 16px Cairo'),
-      document.fonts.load('600 16px Cairo'),
-      document.fonts.load('700 16px Cairo'),
-      document.fonts.load('800 16px Cairo'),
-    ]);
-    // Small extra delay so the browser applies font metrics to the layout
-    await new Promise(r => setTimeout(r, 300));
-
-    const pages = container.querySelectorAll('.page');
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-    for (let i = 0; i < pages.length; i++) {
-      const pageEl = pages[i];
-      pageEl.style.width = '794px';
-      pageEl.style.minHeight = '1122px';
-      pageEl.style.height = '1122px';
-
-      const canvas = await html2canvas(pageEl, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' });
-      const imgData = canvas.toDataURL('image/jpeg', 0.92);
-      if (i > 0) doc.addPage();
-      doc.addImage(imgData, 'JPEG', 0, 0, 210, 297);
-    }
-
-    document.body.removeChild(container);
-    doc.save(`Auto-Ism-تقرير-${childName.replace(/[^a-zA-Z0-9ء-ي]/g, '-')}.pdf`);
+    printWindow.document.open();
+    printWindow.document.write(printableHtml);
+    printWindow.document.close();
   };
 
   const displayedCases = cases.slice(0, displayCount);
@@ -968,7 +945,7 @@ const Cases = () => {
                   <FontAwesomeIcon icon={faDownload} /> {t.downloadPDF || 'Download PDF (English)'}
                 </button>
                 <button className="btn btn-secondary" onClick={generateArabicReport}>
-                  <FontAwesomeIcon icon={faDownload} /> تحميل التقرير (عربي)
+                  <FontAwesomeIcon icon={faDownload} /> طباعة / تحميل (عربي)
                 </button>
               </div>
             </div>
