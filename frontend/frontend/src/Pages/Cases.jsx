@@ -278,6 +278,18 @@ const Cases = () => {
   }
 
   async function createCase() {
+    if (!form.child_name.trim()) {
+      setError(language === 'ar' ? 'يرجى إدخال اسم الطفل.' : 'Please enter the child\'s name.');
+      return;
+    }
+    if (!form.child_dob) {
+      setError(language === 'ar' ? 'يرجى إدخال تاريخ الميلاد.' : 'Please enter the date of birth.');
+      return;
+    }
+    if (!form.brief.trim()) {
+      setError(language === 'ar' ? 'يرجى إدخال ملاحظات مختصرة.' : 'Please enter brief notes.');
+      return;
+    }
     try {
       const data = await api('/cases', {
         method: 'POST',
@@ -944,7 +956,7 @@ const Cases = () => {
               />
             </div>
             <div className="form-group">
-              <label>{t.briefNotes} <span style={{color:'var(--text-muted)', fontSize:'0.85rem'}}>({t.optional})</span></label>
+              <label>{t.briefNotes}</label>
               <textarea className="form-control" rows="4" value={form.brief} onChange={e => setForm({...form, brief: e.target.value})} />
             </div>
             <div className="form-actions">
