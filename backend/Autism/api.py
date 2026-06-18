@@ -604,6 +604,31 @@ def admin_users():
     return jsonify({'users': payload})
 
 
+def _delete_firebase_user(email):
+    """Delete the Firebase account for the given email using Admin SDK.
+    Silently skips if env vars are missing or the account doesn't exist."""
+    try:
+        project_id   = os.environ.get('FIREBASE_PROJECT_ID')
+        private_key  = os.environ.get('FIREBASE_PRIVATE_KEY', '').replace('\\n', '\n')
+        client_email = os.environ.get('FIREBASE_CLIENT_EMAIL')
+        if not all([project_id, private_key, client_email]):
+            return  # Admin SDK not configured — skip
+        import firebase_admin
+        from firebase_admin import credentials as fb_cred, auth as fb_auth
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(fb_cred.Certificate({
+                'type': 'service_account',
+                'project_id': project_id,
+                'private_key': private_key,
+                'client_email': client_email,
+                'token_uri': 'https://oauth2.googleapis.com/token',
+            }))
+        fb_user = fb_auth.get_user_by_email(email)
+        fb_auth.delete_user(fb_user.uid)
+    except Exception:
+        pass  # Firebase account may not exist (e.g. admin user) — ignore
+
+
 @api.route('/admin/users/<int:user_id>', methods=['DELETE'])
 @login_required
 def admin_delete_user(user_id):
@@ -614,13 +639,17 @@ def admin_delete_user(user_id):
     if user.is_admin:
         return jsonify({'error': 'Admin account cannot be deleted.'}), 400
 
+    email = user.email
     try:
         db.session.delete(user)
         db.session.commit()
-        return jsonify({'message': 'User deleted successfully.'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Could not delete user: {str(e)}'}), 500
+
+    # Delete from Firebase after DB commit succeeds
+    _delete_firebase_user(email)
+    return jsonify({'message': 'User deleted successfully.'})
 
 
 @api.route('/user/verify-password', methods=['POST'])

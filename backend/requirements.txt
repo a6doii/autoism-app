@@ -12,6 +12,7 @@ tensorflow
 gunicorn
 psycopg2-binary
 PyJWT
+firebase-admin
 fpdf2
 arabic-reshaper
 python-bidi
