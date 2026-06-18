@@ -647,28 +647,282 @@ def change_password():
     return jsonify({'success': True, 'message': 'Password changed successfully.'})
 
 
+def _ar(text):
+    """Reshape Arabic text and apply bidi so fpdf2 renders it correctly."""
+    import arabic_reshaper
+    from bidi.algorithm import get_display
+    if not text:
+        return ''
+    try:
+        return get_display(arabic_reshaper.reshape(str(text)))
+    except Exception:
+        return str(text)
+
+
+def _get_arabic_font():
+    """Download Cairo TTF once and cache in /tmp."""
+    import urllib.request
+    path = '/tmp/autoism_cairo.ttf'
+    if not os.path.exists(path):
+        url = 'https://github.com/googlefonts/cairo/raw/main/fonts/ttf/Cairo-Regular.ttf'
+        with urllib.request.urlopen(url, timeout=15) as r, open(path, 'wb') as f:
+            f.write(r.read())
+    return path
+
+
+def _pct(val):
+    return f'{float(val) * 100:.1f}%' if val is not None else 'N/A'
+
+
 @api.route('/generate-pdf-arabic', methods=['POST'])
 @login_required
 def generate_pdf_arabic():
+    import re
+    from fpdf import FPDF
+
     data = request.get_json(silent=True) or {}
-    html_content = data.get('html', '')
-    child_name = data.get('child_name', 'report')
-    if not html_content:
-        return jsonify({'error': 'No HTML content provided.'}), 400
+    report_id = data.get('report_id')
+    if not report_id:
+        return jsonify({'error': 'report_id required.'}), 400
+
+    result = TestResult.query.get_or_404(int(report_id))
+    if not require_owner_or_admin(result.case):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    case = result.case
+    answers = json.loads(result.answers_json or '{}')
+    date_str = result.created_at.strftime('%Y-%m-%d') if result.created_at else 'N/A'
+
+    is_high = result.prediction_label and (
+        'high' in result.prediction_label.lower() or
+        'autism likelihood' in result.prediction_label.lower()
+    )
+    risk_rgb = (220, 38, 38) if is_high else (5, 150, 105)
+    risk_bg  = (254, 242, 242) if is_high else (236, 253, 245)
+
+    def extract(key):
+        if not result.report_text: return 'N/A'
+        m = re.search(rf'{key}:\s*([^\n\r]+)', result.report_text, re.IGNORECASE)
+        return m.group(1).strip() if m else 'N/A'
+
+    trans = {
+        'male': 'ذكر', 'female': 'أنثى', 'yes': 'نعم', 'no': 'لا',
+        'white-european': 'أوروبي أبيض', 'asian': 'آسيوي',
+        'middle eastern': 'شرق أوسطي', 'black': 'أسود',
+        'south asian': 'جنوب آسيوي', 'hispanic': 'لاتيني',
+        'others': 'أخرى', 'mixed': 'مختلط',
+    }
+    def tv(v): return trans.get((v or '').lower().strip(), v or 'N/A')
+
+    ar_questions = [
+        'هل ينظر طفلك إليك عندما تناديه باسمه؟',
+        'ما مدى سهولة التواصل البصري مع طفلك؟',
+        'هل يشير طفلك للإشارة إلى أنه يريد شيئًا؟',
+        'هل يشير طفلك لمشاركة اهتمامه معك؟',
+        'هل يتظاهر طفلك (يلعب ألعاب التخيل)؟',
+        'هل يتابع طفلك اتجاه نظرتك؟',
+        'إذا كان شخص ما منزعجًا، هل يحاول طفلك تهدئته؟',
+        'كيف تصف كلمات طفلك الأولى؟',
+        'هل يستخدم طفلك إيماءات بسيطة؟',
+        'هل يحدق طفلك في الفراغ بدون سبب واضح؟',
+    ]
+    ar_opts = [
+        ['دائمًا','عادةً','أحيانًا','نادرًا','أبدًا'],
+        ['سهل جدًا','سهل نسبيًا','صعب نسبيًا','صعب جدًا','مستحيل'],
+        ['عدة مرات يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+        ['عدة مرات يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+        ['عدة مرات يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+        ['عدة مرات يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+        ['دائمًا','عادةً','أحيانًا','نادرًا','أبدًا'],
+        ['طبيعية جدًا','طبيعية نسبيًا','غير عادية قليلًا','غير عادية جدًا','لا يتكلم'],
+        ['عدة مرات يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+        ['عدة مرات يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+    ]
+
     try:
-        from weasyprint import HTML as WeasyprintHTML
-        pdf_bytes = WeasyprintHTML(string=html_content).write_pdf()
-        buf = io.BytesIO(pdf_bytes)
+        font_path = _get_arabic_font()
+    except Exception as e:
+        return jsonify({'error': f'Could not load Arabic font: {e}'}), 503
+
+    W, M = 210, 15          # page width, margin (mm)
+    CW = W - 2 * M          # content width
+
+    try:
+        pdf = FPDF(orientation='P', unit='mm', format='A4')
+        pdf.add_font('AR', '', font_path)
+        pdf.set_auto_page_break(auto=True, margin=M)
+
+        def header(subtitle):
+            pdf.set_fill_color(15, 23, 42)
+            pdf.rect(0, 0, W, 32, 'F')
+            pdf.set_text_color(255, 255, 255)
+            pdf.set_font('AR', size=20)
+            pdf.set_xy(M, 6)
+            pdf.cell(CW, 9, 'Auto-Ism', align='R', new_x='LMARGIN', new_y='NEXT')
+            pdf.set_font('AR', size=10)
+            pdf.set_xy(M, 18)
+            pdf.cell(CW, 7, _ar(subtitle), align='R')
+            pdf.set_text_color(0, 0, 0)
+            pdf.set_xy(M, 36)
+
+        def section_title(title):
+            pdf.set_font('AR', size=13)
+            pdf.set_text_color(15, 23, 42)
+            y = pdf.get_y()
+            pdf.set_draw_color(226, 232, 240)
+            pdf.line(M, y + 8, W - M, y + 8)
+            pdf.set_xy(M, y)
+            pdf.cell(CW, 8, _ar(title), align='R', new_x='LMARGIN', new_y='NEXT')
+            pdf.ln(3)
+
+        def footer_line():
+            pdf.set_xy(M, 272)
+            pdf.set_draw_color(203, 213, 225)
+            pdf.line(M, 272, W - M, 272)
+            pdf.set_font('AR', size=8)
+            pdf.set_text_color(148, 163, 184)
+            pdf.set_xy(M, 275)
+            pdf.cell(CW, 5, f'{_ar("تاريخ الإنشاء")}: {date_str}', align='C')
+
+        # ── PAGE 1: overview ─────────────────────────────────────────────────
+        pdf.add_page()
+        header('تقرير الفحص المبكر للتوحد')
+
+        # Patient card
+        pdf.set_fill_color(248, 250, 252)
+        pdf.set_draw_color(203, 213, 225)
+        pdf.rect(M, 36, CW, 36, 'FD')
+        info = [
+            ('اسم المريض', case.child_name),
+            ('تاريخ التقييم', date_str),
+            ('تاريخ الميلاد', case.child_dob),
+            (f'رقم الحالة', f'#{case.id}'),
+        ]
+        col = CW / 2
+        for idx, (lbl, val) in enumerate(info):
+            c, r = idx % 2, idx // 2
+            x = M + (1 - c) * col
+            y = 39 + r * 16
+            pdf.set_font('AR', size=8)
+            pdf.set_text_color(100, 116, 139)
+            pdf.set_xy(x, y)
+            pdf.cell(col, 5, _ar(lbl), align='R')
+            pdf.set_font('AR', size=13)
+            pdf.set_text_color(15, 23, 42)
+            pdf.set_xy(x, y + 6)
+            pdf.cell(col, 7, _ar(val), align='R')
+
+        # Risk banner
+        pdf.set_fill_color(*risk_rgb)
+        pdf.rect(M, 76, CW, 26, 'F')
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_font('AR', size=9)
+        pdf.set_xy(M, 79)
+        pdf.cell(CW, 6, _ar('مؤشر المخاطر المجمعة'), align='C', new_x='LMARGIN', new_y='NEXT')
+        pdf.set_font('AR', size=20)
+        pdf.set_xy(M, 84)
+        pdf.cell(CW, 14, _ar('خطر مرتفع' if is_high else 'خطر منخفض'), align='C')
+        pdf.set_text_color(0, 0, 0)
+
+        # Diagnostics table
+        pdf.set_xy(M, 108)
+        section_title('تشخيصات النموذج')
+
+        rows = [
+            (f'{result.spark_score or 0}/10', 'تحليل استبيان Q-CHAT-10'),
+            (_pct(result.image_score),         'التحليل البيومتري للوجه'),
+            (_pct(result.combined_risk),        'الاحتمالية النهائية المرجحة'),
+        ]
+        pdf.set_fill_color(241, 245, 249)
+        pdf.set_draw_color(203, 213, 225)
+        pdf.set_font('AR', size=9)
+        y0 = pdf.get_y()
+        pdf.set_xy(M, y0)
+        pdf.cell(CW/2, 8, _ar('الدرجة المحسوبة'), align='C', border=1, fill=True)
+        pdf.cell(CW/2, 8, _ar('مكون التقييم'),    align='C', border=1, fill=True, new_x='LMARGIN', new_y='NEXT')
+        for i, (val, lbl) in enumerate(rows):
+            if i == 2:
+                pdf.set_fill_color(*risk_bg)
+                pdf.set_text_color(*risk_rgb)
+                fill = True
+            else:
+                pdf.set_fill_color(255, 255, 255)
+                pdf.set_text_color(51, 65, 85)
+                fill = False
+            pdf.set_font('AR', size=i == 2 and 11 or 10)
+            pdf.cell(CW/2, 10, _ar(val), align='C', border=1, fill=fill)
+            pdf.cell(CW/2, 10, _ar(lbl), align='R', border=1, fill=fill, new_x='LMARGIN', new_y='NEXT')
+
+        pdf.set_text_color(0, 0, 0)
+        footer_line()
+
+        # ── PAGE 2: demographics + recommendation ────────────────────────────
+        pdf.add_page()
+        header('التحليل المفصل والبيانات الديموغرافية')
+        section_title('الملف الديموغرافي')
+
+        dem_rows = [
+            ('الجنس البيولوجي', tv(extract('Child sex'))),
+            ('العرق',            tv(extract('Ethnicity'))),
+            ('تاريخ اليرقان',    tv(extract('Jaundice history'))),
+            ('توحد في العائلة',  tv(extract('Family ASD history'))),
+        ]
+        pdf.set_draw_color(203, 213, 225)
+        pdf.set_font('AR', size=10)
+        for i, (lbl, val) in enumerate(dem_rows):
+            pdf.set_fill_color(248, 250, 252 if i % 2 == 0 else 255)
+            pdf.cell(CW/2, 11, _ar(val), align='C', border=1, fill=True)
+            pdf.cell(CW/2, 11, _ar(lbl), align='R', border=1, fill=True, new_x='LMARGIN', new_y='NEXT')
+
+        pdf.ln(6)
+        section_title('التوصية السريرية')
+
+        rec = ('تم رصد خطر مرتفع للتوحد. نوصي بشدة باستشارة متخصص لإجراء تقييم شامل.'
+               if is_high else
+               'لم يتم رصد أي علامات للتوحد. واصل متابعة نمو طفلك بانتظام.')
+        y_rec = pdf.get_y()
+        pdf.set_fill_color(*risk_rgb)
+        pdf.rect(M, y_rec, 3, 30, 'F')
+        pdf.set_fill_color(*risk_bg)
+        pdf.rect(M + 3, y_rec, CW - 3, 30, 'F')
+        pdf.set_font('AR', size=10)
+        pdf.set_text_color(*risk_rgb)
+        pdf.set_xy(M + 6, y_rec + 4)
+        pdf.multi_cell(CW - 9, 7, _ar(rec), align='R')
+        pdf.set_text_color(0, 0, 0)
+
+        footer_line()
+
+        # ── PAGE 3: Q-CHAT answers ───────────────────────────────────────────
+        pdf.add_page()
+        header('إجابات استبيان Q-CHAT-10')
+        section_title('إجابات الأسئلة')
+
+        pdf.set_fill_color(241, 245, 249)
+        pdf.set_draw_color(203, 213, 225)
+        pdf.set_font('AR', size=9)
+        pdf.cell(18,  8, _ar('#'),      align='C', border=1, fill=True)
+        pdf.cell(CW - 60, 8, _ar('السؤال'),  align='C', border=1, fill=True)
+        pdf.cell(42,  8, _ar('الإجابة'), align='C', border=1, fill=True, new_x='LMARGIN', new_y='NEXT')
+
+        for i, q in enumerate(ar_questions):
+            letter = answers.get(f'A{i+1}', '-')
+            idx = ['A','B','C','D','E'].index(letter) if letter in 'ABCDE' else -1
+            ans_text = ar_opts[i][idx] if idx >= 0 else letter
+            fill_bg = (248, 250, 252) if i % 2 == 0 else (255, 255, 255)
+            pdf.set_fill_color(*fill_bg)
+            pdf.set_text_color(51, 65, 85)
+            pdf.cell(18,  12, str(i + 1),     align='C', border=1, fill=True)
+            pdf.cell(CW - 60, 12, _ar(q),         align='R', border=1, fill=True)
+            pdf.cell(42,  12, _ar(ans_text),  align='C', border=1, fill=True, new_x='LMARGIN', new_y='NEXT')
+
+        footer_line()
+
+        buf = io.BytesIO()
+        pdf.output(buf)
         buf.seek(0)
-        safe_name = ''.join(c for c in child_name if c.isalnum() or c in (' ', '-', '_', '؀', '؁', '؂', '؃', '؄', '؅', '؆', '؇', '؈', '؉', '؊', '؋', '،', '؍', '؎', '؏', 'ؐ', 'ؑ', 'ؒ', 'ؓ', 'ؔ', 'ؕ', 'ؖ', 'ؗ', 'ؘ', 'ؙ', 'ؚ', '؛', '؜', '؝', '؞', '؟', 'ؠ', 'ء', 'آ', 'أ', 'ؤ', 'إ', 'ئ', 'ا', 'ب', 'ة', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ػ', 'ؼ', 'ؽ', 'ؾ', 'ؿ', 'ـ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'ه', 'و', 'ى', 'ي'))
-        filename = f'Auto-Ism-{safe_name or "report"}.pdf'
-        return send_file(
-            buf,
-            mimetype='application/pdf',
-            as_attachment=True,
-            download_name=filename,
-        )
-    except ImportError:
-        return jsonify({'error': 'PDF generation library not available on this server.'}), 503
+        return send_file(buf, mimetype='application/pdf', as_attachment=True,
+                         download_name=f'Auto-Ism-{case.child_name}.pdf')
+
     except Exception as e:
         return jsonify({'error': f'PDF generation failed: {str(e)}'}), 500

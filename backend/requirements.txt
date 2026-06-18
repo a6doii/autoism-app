@@ -12,4 +12,6 @@ tensorflow
 gunicorn
 psycopg2-binary
 PyJWT
-weasyprint
+fpdf2
+arabic-reshaper
+python-bidi

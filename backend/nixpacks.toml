@@ -1,2 +1,1 @@
-[phases.setup]
-nixPkgs = ["pango", "cairo", "glib", "fontconfig", "gobject-introspection", "harfbuzz", "freetype"]
+# No system-level C libraries needed — all PDF packages are pure Python.
