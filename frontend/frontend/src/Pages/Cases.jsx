@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPlus, faArrowLeft, faDownload, faFileMedical, faTrash, faPlay, faList, faChevronDown, faChevronUp
 } from '@fortawesome/free-solid-svg-icons';
-import { api, getAuthToken } from '../lib/api';
+import { api } from '../lib/api';
 import { useLanguage } from '../context/LanguageContext';
 import '../CSS/Cases.css';
 import mascotThinking from '../Assets/mascot_thinking.png';
@@ -581,37 +581,259 @@ const Cases = () => {
 
   const generateArabicReport = async () => {
     if (!currentReport) return;
+
+    const isHighRisk = currentReport.prediction_label?.toLowerCase().includes('high') ||
+                       currentReport.prediction_label?.toLowerCase().includes('autism likelihood detected');
+    const themeHex = isHighRisk ? '#dc2626' : '#059669';
+    const themeBg  = isHighRisk ? '#fef2f2' : '#ecfdf5';
     const childName = activeCase?.child_name || 'N/A';
-    const BASE_URL = process.env.REACT_APP_API_URL || '';
-    const token = getAuthToken();
-    try {
-      const response = await fetch(`${BASE_URL}/api/generate-pdf-arabic`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ report_id: currentReport.id }),
-      });
-      if (!response.ok) {
-        let msg = language === 'ar' ? 'فشل إنشاء التقرير.' : 'Failed to generate Arabic PDF.';
-        try { const d = await response.json(); msg = d.error || msg; } catch (_) {}
-        setError(msg);
-        return;
-      }
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Auto-Ism-تقرير-${childName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      setError(err.message || 'Network error');
+    const riskPct  = currentReport.combined_risk != null
+      ? `${(currentReport.combined_risk * 100).toFixed(1)}%` : 'N/A';
+    const dateStr  = currentReport.created_at
+      ? new Date(currentReport.created_at).toLocaleDateString('ar-EG', { year:'numeric', month:'long', day:'numeric' })
+      : '';
+
+    const transVal = v => ({
+      male:'ذكر', female:'أنثى', yes:'نعم', no:'لا',
+      'white-european':'أوروبي أبيض', asian:'آسيوي', 'middle eastern':'شرق أوسطي',
+      black:'أسود', 'south asian':'جنوب آسيوي', hispanic:'لاتيني',
+      others:'أخرى', mixed:'مختلط',
+    })[(v||'').toLowerCase().trim()] || (v||'N/A');
+
+    const exd = key => {
+      if (!currentReport.report_text) return 'N/A';
+      const m = currentReport.report_text.match(new RegExp(`${key}:\\s*([^\\n\\r]+)`, 'i'));
+      return m ? m[1].trim() : 'N/A';
+    };
+
+    const arQs = [
+      'هل ينظر طفلك إليك عندما تناديه باسمه؟',
+      'ما مدى سهولة التواصل البصري مع طفلك؟',
+      'هل يشير طفلك للدلالة على أنه يريد شيئًا؟',
+      'هل يشير طفلك لمشاركة اهتمامه معك؟',
+      'هل يتظاهر طفلك (ألعاب التخيل)؟',
+      'هل يتابع طفلك اتجاه نظرتك؟',
+      'هل يحاول طفلك مواساة من يشعر بضيق؟',
+      'كيف تصف كلمات طفلك الأولى؟',
+      'هل يستخدم طفلك إيماءات بسيطة؟',
+      'هل يحدق طفلك في الفراغ بلا هدف واضح؟',
+    ];
+    const arOs = [
+      ['دائمًا','عادةً','أحيانًا','نادرًا','أبدًا'],
+      ['سهل جدًا','سهل نسبيًا','صعب نسبيًا','صعب جدًا','مستحيل'],
+      ['مرات عديدة يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+      ['مرات عديدة يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+      ['مرات عديدة يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+      ['مرات عديدة يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+      ['دائمًا','عادةً','أحيانًا','نادرًا','أبدًا'],
+      ['طبيعية جدًا','طبيعية نسبيًا','غير عادية قليلًا','غير عادية جدًا','لا يتكلم'],
+      ['مرات عديدة يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+      ['مرات عديدة يوميًا','بضع مرات يوميًا','بضع مرات أسبوعيًا','أقل من مرة أسبوعيًا','أبدًا'],
+    ];
+
+    // Ensure Cairo font is loaded in the browser (needed for canvas.fillText Arabic shaping)
+    if (!document.querySelector('link[href*="Cairo"]')) {
+      const lnk = document.createElement('link');
+      lnk.rel = 'stylesheet';
+      lnk.href = 'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap';
+      document.head.appendChild(lnk);
     }
+    await document.fonts.ready;
+    await Promise.all([
+      document.fonts.load('400 16px Cairo'),
+      document.fonts.load('700 16px Cairo'),
+      document.fonts.load('800 16px Cairo'),
+    ]);
+    await new Promise(r => setTimeout(r, 200));
+
+    // Canvas = 72 DPI (pt) at 2× scale, matching A4 exactly
+    const W = 595, H = 842, M = 40, CW = W - 2 * M, S = 2;
+
+    const mkPage = () => {
+      const cv = document.createElement('canvas');
+      cv.width = W * S; cv.height = H * S;
+      const cx = cv.getContext('2d');
+      cx.scale(S, S);
+      cx.fillStyle = '#fff'; cx.fillRect(0, 0, W, H);
+      return { cv, cx };
+    };
+
+    // Draw Arabic text (right-anchored by default)
+    const T = (cx, text, x, y, size, wt = '400', color = '#334155', align = 'right') => {
+      cx.save();
+      cx.font = `${wt} ${size}px Cairo`;
+      cx.textAlign = align; cx.textBaseline = 'middle'; cx.fillStyle = color;
+      cx.fillText(String(text || ''), x, y);
+      cx.restore();
+    };
+
+    const BOX = (cx, x, y, w, h, fill, stroke) => {
+      if (fill)   { cx.fillStyle   = fill;   cx.fillRect(x, y, w, h); }
+      if (stroke) { cx.strokeStyle = stroke; cx.lineWidth = 0.8; cx.strokeRect(x, y, w, h); }
+    };
+
+    const HR = (cx, y, color = '#e2e8f0') => {
+      cx.save(); cx.strokeStyle = color; cx.lineWidth = 1;
+      cx.beginPath(); cx.moveTo(M, y); cx.lineTo(W - M, y); cx.stroke(); cx.restore();
+    };
+
+    const HDR = (cx, sub) => {
+      BOX(cx, 0, 0, W, 68, '#0f172a');
+      T(cx, 'Auto-Ism', W - M, 26, 24, '800', 'white');
+      T(cx, sub, W - M, 50, 11, '400', '#94a3b8');
+    };
+
+    // Word-wrap Arabic into lines, right-aligned
+    const wrapAr = (cx, text, maxW, size, wt = '400') => {
+      cx.font = `${wt} ${size}px Cairo`;
+      const words = text.split(' ');
+      const lines = [''];
+      words.forEach(w => {
+        const test = lines[lines.length - 1] + w + ' ';
+        if (cx.measureText(test).width > maxW) lines.push(w + ' ');
+        else lines[lines.length - 1] = test;
+      });
+      return lines.map(l => l.trim());
+    };
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    // ── PAGE 1: overview ───────────────────────────────────────────────────────
+    {
+      const { cv, cx } = mkPage();
+      HDR(cx, 'تقرير الفحص المبكر للتوحد');
+
+      // Patient card
+      BOX(cx, M, 80, CW, 82, '#f8fafc', '#cbd5e1');
+      const fields = [
+        ['اسم المريض',   childName],
+        ['تاريخ التقييم', dateStr],
+        ['تاريخ الميلاد', activeCase?.child_dob || 'N/A'],
+        ['رقم الحالة',   `#${currentReport.case_id}`],
+      ];
+      fields.forEach(([lbl, val], i) => {
+        const col = i % 2, row = Math.floor(i / 2);
+        const px = col === 0 ? W - M - CW / 4 : W - M - CW * 3 / 4;
+        T(cx, lbl,  px, 93  + row * 36, 8,  '600', '#64748b', 'center');
+        T(cx, val,  px, 111 + row * 36, 12, '700', '#0f172a', 'center');
+      });
+
+      // Risk banner
+      const by = 174;
+      const gr = cx.createLinearGradient(M, by, M + CW, by);
+      gr.addColorStop(0, isHighRisk ? '#dc2626' : '#059669');
+      gr.addColorStop(1, isHighRisk ? '#7f1d1d' : '#064e3b');
+      cx.fillStyle = gr; cx.fillRect(M, by, CW, 52);
+      T(cx, 'مؤشر المخاطر المجمعة', W / 2, by + 16, 10, '400', 'rgba(255,255,255,0.85)', 'center');
+      T(cx, isHighRisk ? 'خطر مرتفع' : 'خطر منخفض', W / 2, by + 37, 21, '800', 'white', 'center');
+
+      // Diagnostics table
+      const TY = 242;
+      T(cx, 'تشخيصات النموذج', W - M, TY, 13, '700', '#0f172a');
+      HR(cx, TY + 11, '#e2e8f0');
+      const drows = [
+        [`${currentReport.spark_score || 0}/10`, 'تحليل استبيان Q-CHAT-10'],
+        [currentReport.image_score != null ? `${(currentReport.image_score * 100).toFixed(1)}%` : 'N/A', 'التحليل البيومتري للوجه'],
+        [riskPct, 'الاحتمالية النهائية المرجحة'],
+      ];
+      const th2 = TY + 20;
+      BOX(cx, M, th2, CW, 22, '#f1f5f9', '#cbd5e1');
+      T(cx, 'الدرجة المحسوبة', W - M - CW / 4, th2 + 11, 9, '700', '#475569', 'center');
+      T(cx, 'مكون التقييم',    W - M - CW*3/4,  th2 + 11, 9, '700', '#475569', 'center');
+      drows.forEach(([val, lbl], i) => {
+        const ry = th2 + 22 + i * 26;
+        const last = i === 2;
+        BOX(cx, M, ry, CW, 26, last ? themeBg : i % 2 === 0 ? '#fff' : '#f8fafc', '#e2e8f0');
+        T(cx, val, W - M - CW / 4, ry + 13, last ? 12 : 10, last ? '800' : '400', last ? themeHex : '#334155', 'center');
+        T(cx, lbl, W - M - CW*3/4, ry + 13, last ? 12 : 10, last ? '800' : '400', last ? themeHex : '#334155', 'center');
+      });
+
+      // Footer disclaimer
+      HR(cx, H - 68, '#cbd5e1');
+      const disc = 'هذا التقرير هو أداة مساعدة قائمة على الذكاء الاصطناعي ولا يشكل تشخيصاً طبياً رسمياً. يجب عرض هذه النتائج على طبيب أطفال أو أخصائي توحد معتمد.';
+      const dLines = wrapAr(cx, disc, CW, 8);
+      dLines.forEach((l, i) => T(cx, l, W - M, H - 62 + i * 13, 8, '400', '#94a3b8'));
+      T(cx, 'تاريخ الإنشاء: ' + dateStr, W / 2, H - 26, 8, '600', '#64748b', 'center');
+
+      doc.addImage(cv.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
+    }
+
+    // ── PAGE 2: demographics + recommendation ──────────────────────────────────
+    {
+      const { cv, cx } = mkPage();
+      doc.addPage();
+      HDR(cx, 'التحليل المفصل والبيانات الديموغرافية');
+
+      const dy = 82;
+      T(cx, 'الملف الديموغرافي', W - M, dy, 13, '700', '#0f172a');
+      HR(cx, dy + 11, '#e2e8f0');
+      const dem = [
+        ['الجنس البيولوجي',         transVal(exd('Child sex'))],
+        ['العرق',                   transVal(exd('Ethnicity'))],
+        ['تاريخ الإصابة باليرقان',  transVal(exd('Jaundice history'))],
+        ['تاريخ العائلة مع التوحد', transVal(exd('Family ASD history'))],
+      ];
+      dem.forEach(([lbl, val], i) => {
+        const ry = dy + 20 + i * 28;
+        BOX(cx, M, ry, CW, 28, i % 2 === 0 ? '#f8fafc' : '#fff', '#e2e8f0');
+        T(cx, val, W - M - CW / 4, ry + 14, 12, '400', '#334155', 'center');
+        T(cx, lbl, W - M - CW*3/4, ry + 14, 12, '600', '#475569', 'center');
+      });
+
+      const ry2 = dy + 20 + dem.length * 28 + 18;
+      T(cx, 'التوصية السريرية', W - M, ry2, 13, '700', '#0f172a');
+      HR(cx, ry2 + 11, '#e2e8f0');
+
+      const rec = isHighRisk
+        ? 'تم رصد خطر مرتفع للتوحد. نوصي بشدة باستشارة متخصص لإجراء تقييم شامل.'
+        : 'لم يتم رصد أي علامات للتوحد. واصل متابعة نمو طفلك بانتظام.';
+      const recY = ry2 + 22;
+      const recLines = wrapAr(cx, rec, CW - 24, 11);
+      const recH = Math.max(50, recLines.length * 18 + 20);
+      BOX(cx, M, recY, 4, recH, themeHex);
+      BOX(cx, M + 4, recY, CW - 4, recH, themeBg);
+      recLines.forEach((l, i) => T(cx, l, W - M - 10, recY + 14 + i * 18, 11, '400', themeHex));
+
+      HR(cx, H - 50, '#cbd5e1');
+      T(cx, 'تاريخ الإنشاء: ' + dateStr, W / 2, H - 35, 8, '600', '#64748b', 'center');
+      doc.addImage(cv.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
+    }
+
+    // ── PAGE 3: Q-CHAT answers ─────────────────────────────────────────────────
+    {
+      const { cv, cx } = mkPage();
+      doc.addPage();
+      HDR(cx, 'إجابات استبيان Q-CHAT-10');
+
+      const qY = 82;
+      T(cx, 'إجابات الأسئلة', W - M, qY, 13, '700', '#0f172a');
+      HR(cx, qY + 11, '#e2e8f0');
+
+      // Column widths (RTL: # rightmost, Answer leftmost)
+      const NC = 30, AC = 135, QC = CW - NC - AC;
+      const thY = qY + 20;
+      BOX(cx, M, thY, CW, 22, '#f1f5f9', '#cbd5e1');
+      T(cx, '#',       W - M - NC / 2,         thY + 11, 9, '700', '#475569', 'center');
+      T(cx, 'السؤال',  W - M - NC - QC / 2,    thY + 11, 9, '700', '#475569', 'center');
+      T(cx, 'الإجابة', M + AC / 2,              thY + 11, 9, '700', '#475569', 'center');
+
+      arQs.forEach((q, i) => {
+        const letter = (currentReport.answers || {})[`A${i + 1}`] || '-';
+        const idx = ['A','B','C','D','E'].indexOf(letter);
+        const ans = idx >= 0 ? arOs[i][idx] : letter;
+        const ry = thY + 22 + i * 22;
+        BOX(cx, M, ry, CW, 22, i % 2 === 0 ? '#fff' : '#f8fafc', '#e2e8f0');
+        T(cx, String(i + 1), W - M - NC / 2,      ry + 11, 9,   '600', '#64748b', 'center');
+        T(cx, q,             W - M - NC - 8,        ry + 11, 8.5, '400', '#334155', 'right');
+        T(cx, ans,           M + AC - 6,             ry + 11, 9,   '600', '#0f172a', 'right');
+      });
+
+      HR(cx, H - 50, '#cbd5e1');
+      T(cx, 'تاريخ الإنشاء: ' + dateStr, W / 2, H - 35, 8, '600', '#64748b', 'center');
+      doc.addImage(cv.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
+    }
+
+    doc.save(`Auto-Ism-تقرير-${childName}.pdf`);
   };
 
   const displayedCases = cases.slice(0, displayCount);
