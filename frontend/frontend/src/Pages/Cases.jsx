@@ -587,6 +587,7 @@ const Cases = () => {
     try {
       const response = await fetch(`${BASE_URL}/api/generate-pdf-arabic`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
