@@ -1,1 +1,4 @@
-# No system-level C libraries needed — all PDF packages are pure Python.
+[phases.setup]
+# Install Noto Arabic fonts + fontconfig so _get_arabic_font() can find
+# a system TTF via fc-list without needing a network download at runtime.
+nixPkgs = ["noto-fonts-extra", "fontconfig"]

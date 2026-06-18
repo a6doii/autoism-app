@@ -660,14 +660,58 @@ def _ar(text):
 
 
 def _get_arabic_font():
-    """Download Cairo TTF once and cache in /tmp."""
+    """Return path to a TTF font with Arabic support.
+
+    Priority:
+    1. Already cached in /tmp
+    2. System font found via fontconfig (fc-list)
+    3. Downloaded from one of several fallback URLs
+    """
     import urllib.request
-    path = '/tmp/autoism_cairo.ttf'
-    if not os.path.exists(path):
-        url = 'https://github.com/googlefonts/cairo/raw/main/fonts/ttf/Cairo-Regular.ttf'
-        with urllib.request.urlopen(url, timeout=15) as r, open(path, 'wb') as f:
-            f.write(r.read())
-    return path
+    import subprocess
+
+    cache_path = '/tmp/autoism_arabic.ttf'
+    if os.path.exists(cache_path) and os.path.getsize(cache_path) > 50000:
+        return cache_path
+
+    # Try fontconfig to find a system Arabic font
+    try:
+        result = subprocess.run(
+            ['fc-list', ':lang=ar', '--format=%{file}\n'],
+            capture_output=True, text=True, timeout=5,
+        )
+        candidates = [
+            f.strip() for f in result.stdout.split('\n')
+            if f.strip() and ('.ttf' in f.lower() or '.otf' in f.lower())
+        ]
+        if candidates:
+            return candidates[0]
+    except Exception:
+        pass
+
+    # Download from fallback URLs
+    font_urls = [
+        'https://raw.githubusercontent.com/alif-type/amiri/master/fonts/Amiri-Regular.ttf',
+        'https://github.com/alif-type/amiri/raw/master/fonts/Amiri-Regular.ttf',
+        'https://raw.githubusercontent.com/google/fonts/main/ofl/cairo/static/Cairo-Regular.ttf',
+        'https://github.com/googlefonts/cairo/raw/main/fonts/ttf/Cairo-Regular.ttf',
+    ]
+    for url in font_urls:
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                data = r.read()
+            if len(data) > 50000:
+                with open(cache_path, 'wb') as f:
+                    f.write(data)
+                return cache_path
+        except Exception:
+            continue
+
+    raise RuntimeError(
+        'No Arabic font available. Could not find a system font via fontconfig '
+        'and all download attempts failed.'
+    )
 
 
 def _pct(val):
