@@ -124,7 +124,6 @@ const SocialGame = ({ onFinish, onBack }) => {
   };
 
   const next = () => {
-    const newScore = score + (status === 'correct' ? 0 : 0);
     if (ri + 1 >= TOTAL) {
       setState('gameover');
       if (score / TOTAL >= 0.5) confetti({ particleCount: 200, spread: 120, origin: { y: 0.4 }, zIndex: 1000 });

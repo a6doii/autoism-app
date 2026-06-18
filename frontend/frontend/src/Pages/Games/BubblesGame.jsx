@@ -79,7 +79,6 @@ const BubblesGame = ({ onFinish, onBack }) => {
 
     // Round over
     const roundHits = hits;
-    const targets = config.pool.filter(e => e === config.target).length;
     const roundScore = Math.max(0, roundHits);
     setTotalScore(s => s + roundScore);
 
@@ -99,7 +98,7 @@ const BubblesGame = ({ onFinish, onBack }) => {
         });
       }
     }, 800);
-  }, [currentIdx, state]);
+  }, [currentIdx, state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const start = () => {
     setRound(0); setTotalScore(0);
