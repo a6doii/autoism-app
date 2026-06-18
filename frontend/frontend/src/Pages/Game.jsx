@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPuzzlePiece, faShapes, faFaceLaughBeam, faTriangleExclamation,
-  faFaceSmile, faHandshake, faListCheck, faShuffle,
-  faVolumeHigh, faBullseye, faPersonWalking,
+  faFaceSmile, faHandshake, faListCheck, faShuffle, faBullseye,
 } from '@fortawesome/free-solid-svg-icons';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../lib/api';
@@ -15,9 +14,7 @@ import ExpressionsGame   from './Games/ExpressionsGame';
 import SocialGame        from './Games/SocialGame';
 import PatternGame       from './Games/PatternGame';
 import RoutineGame       from './Games/RoutineGame';
-import SoundsGame        from './Games/SoundsGame';
 import BubblesGame       from './Games/BubblesGame';
-import BodyLanguageGame  from './Games/BodyLanguageGame';
 import '../CSS/Game.css';
 
 const GAMES = [
@@ -54,17 +51,9 @@ const GAMES = [
     en_title: 'Daily Routine',    ar_title: 'الروتين اليومي',
     en_desc:  'Put the daily steps in order.',   ar_desc: 'رتّب الخطوات اليومية بالترتيب الصحيح.' },
 
-  { key: 'sounds',      icon: faVolumeHigh,       color: '#10b981',
-    en_title: 'Animal Sounds',    ar_title: 'أصوات الحيوانات',
-    en_desc:  'Match the sound to the animal.',  ar_desc: 'طابق الصوت مع الحيوان.' },
-
   { key: 'bubbles',     icon: faBullseye,         color: '#ef4444',
     en_title: 'Focus Bubbles',    ar_title: 'فقاعات التركيز',
     en_desc:  'Pop only the target bubbles!',    ar_desc: 'انقر فقط على الفقاعات المطلوبة!' },
-
-  { key: 'bodylanguage',icon: faPersonWalking,    color: '#64748b',
-    en_title: 'Body Language',    ar_title: 'لغة الجسد',
-    en_desc:  'What does this body language mean?', ar_desc: 'ماذا تعني لغة الجسد هذه؟' },
 ];
 
 const Game = () => {
@@ -128,9 +117,7 @@ const Game = () => {
         {activeGame === 'social'       && <SocialGame       {...props} />}
         {activeGame === 'pattern'      && <PatternGame      {...props} />}
         {activeGame === 'routine'      && <RoutineGame      {...props} />}
-        {activeGame === 'sounds'       && <SoundsGame       {...props} />}
         {activeGame === 'bubbles'      && <BubblesGame      {...props} />}
-        {activeGame === 'bodylanguage' && <BodyLanguageGame {...props} />}
       </>
     );
   }
