@@ -89,8 +89,12 @@ def create_app():
 
         if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql'):
             try:
-                with db.engine.begin() as conn:
-                    conn.execute(text('ALTER TABLE "case" ALTER COLUMN brief DROP NOT NULL'))
+                from .models import Case as _Case
+                _tbl = _Case.__tablename__
+                _cols = {c['name']: c for c in inspect(db.engine).get_columns(_tbl)}
+                if 'brief' in _cols and not _cols['brief']['nullable']:
+                    with db.engine.begin() as conn:
+                        conn.execute(text(f'ALTER TABLE "{_tbl}" ALTER COLUMN brief DROP NOT NULL'))
             except Exception:
                 pass
 

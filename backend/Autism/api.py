@@ -338,7 +338,7 @@ def cases():
     new_case = Case(
         child_name=child_name,
         child_dob=child_dob,
-        brief=brief,
+        brief=brief or None,
         owner_id=current_user.id
     )
     db.session.add(new_case)
