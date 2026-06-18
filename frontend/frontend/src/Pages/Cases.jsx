@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPlus, faArrowLeft, faDownload, faFileMedical, faTrash, faPlay, faList, faChevronDown, faChevronUp
 } from '@fortawesome/free-solid-svg-icons';
-import { api } from '../lib/api';
+import { api, getAuthToken } from '../lib/api';
 import { useLanguage } from '../context/LanguageContext';
 import '../CSS/Cases.css';
 import mascotThinking from '../Assets/mascot_thinking.png';
@@ -739,25 +739,34 @@ const Cases = () => {
 </body>
 </html>`;
 
-    // Inject auto-print script into the HTML so the browser prints after fonts load
-    const printableHtml = htmlContent.replace('</body>', `
-<script>
-  document.fonts.ready.then(function() {
-    setTimeout(function() { window.print(); }, 800);
-  });
-</script>
-</body>`);
+    // Send HTML to backend → WeasyPrint generates a real PDF → download as blob
+    const BASE_URL = process.env.REACT_APP_API_URL || '';
+    const token = getAuthToken();
+    const response = await fetch(`${BASE_URL}/api/generate-pdf-arabic`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ html: htmlContent, child_name: childName }),
+    });
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert(language === 'ar'
-        ? 'يرجى السماح بالنوافذ المنبثقة لهذا الموقع لتحميل التقرير العربي.'
-        : 'Please allow popups for this site to open the Arabic report.');
+    if (!response.ok) {
+      let msg = 'Failed to generate Arabic PDF.';
+      try { const d = await response.json(); msg = d.error || msg; } catch (_) {}
+      setError(msg);
       return;
     }
-    printWindow.document.open();
-    printWindow.document.write(printableHtml);
-    printWindow.document.close();
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Auto-Ism-تقرير-${childName}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const displayedCases = cases.slice(0, displayCount);
@@ -945,7 +954,7 @@ const Cases = () => {
                   <FontAwesomeIcon icon={faDownload} /> {t.downloadPDF || 'Download PDF (English)'}
                 </button>
                 <button className="btn btn-secondary" onClick={generateArabicReport}>
-                  <FontAwesomeIcon icon={faDownload} /> طباعة / تحميل (عربي)
+                  <FontAwesomeIcon icon={faDownload} /> تحميل التقرير (عربي)
                 </button>
               </div>
             </div>

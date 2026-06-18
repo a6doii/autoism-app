@@ -12,3 +12,4 @@ tensorflow
 gunicorn
 psycopg2-binary
 PyJWT
+weasyprint

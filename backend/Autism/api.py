@@ -1,3 +1,4 @@
+import io
 import json
 import os
 import pickle
@@ -6,7 +7,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 import cv2
 import numpy as np
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from tensorflow.keras.models import load_model
@@ -644,3 +645,30 @@ def change_password():
     current_user.password = generate_password_hash(new_password, method='pbkdf2:sha256', salt_length=16)
     db.session.commit()
     return jsonify({'success': True, 'message': 'Password changed successfully.'})
+
+
+@api.route('/generate-pdf-arabic', methods=['POST'])
+@login_required
+def generate_pdf_arabic():
+    data = request.get_json(silent=True) or {}
+    html_content = data.get('html', '')
+    child_name = data.get('child_name', 'report')
+    if not html_content:
+        return jsonify({'error': 'No HTML content provided.'}), 400
+    try:
+        from weasyprint import HTML as WeasyprintHTML
+        pdf_bytes = WeasyprintHTML(string=html_content).write_pdf()
+        buf = io.BytesIO(pdf_bytes)
+        buf.seek(0)
+        safe_name = ''.join(c for c in child_name if c.isalnum() or c in (' ', '-', '_', '؀', '؁', '؂', '؃', '؄', '؅', '؆', '؇', '؈', '؉', '؊', '؋', '،', '؍', '؎', '؏', 'ؐ', 'ؑ', 'ؒ', 'ؓ', 'ؔ', 'ؕ', 'ؖ', 'ؗ', 'ؘ', 'ؙ', 'ؚ', '؛', '؜', '؝', '؞', '؟', 'ؠ', 'ء', 'آ', 'أ', 'ؤ', 'إ', 'ئ', 'ا', 'ب', 'ة', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ػ', 'ؼ', 'ؽ', 'ؾ', 'ؿ', 'ـ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'ه', 'و', 'ى', 'ي'))
+        filename = f'Auto-Ism-{safe_name or "report"}.pdf'
+        return send_file(
+            buf,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename,
+        )
+    except ImportError:
+        return jsonify({'error': 'PDF generation library not available on this server.'}), 503
+    except Exception as e:
+        return jsonify({'error': f'PDF generation failed: {str(e)}'}), 500
