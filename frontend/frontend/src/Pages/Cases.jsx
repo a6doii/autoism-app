@@ -739,14 +739,30 @@ const Cases = () => {
 </body>
 </html>`;
 
+    // Inject Cairo into the real document head so the browser actually loads it
+    if (!document.querySelector('link[href*="Cairo"]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap';
+      document.head.appendChild(link);
+    }
+
     // Render HTML → canvas → PDF
     const container = document.createElement('div');
-    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:white;';
+    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:white;font-family:Cairo,sans-serif;direction:rtl;';
     container.innerHTML = htmlContent;
     document.body.appendChild(container);
 
-    // Wait for Cairo font to load
-    await document.fonts.load('700 16px Cairo');
+    // Wait for ALL Cairo weights to be ready before capturing
+    await document.fonts.ready;
+    await Promise.all([
+      document.fonts.load('400 16px Cairo'),
+      document.fonts.load('600 16px Cairo'),
+      document.fonts.load('700 16px Cairo'),
+      document.fonts.load('800 16px Cairo'),
+    ]);
+    // Small extra delay so the browser applies font metrics to the layout
+    await new Promise(r => setTimeout(r, 300));
 
     const pages = container.querySelectorAll('.page');
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
