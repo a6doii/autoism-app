@@ -469,7 +469,7 @@ def report_detail(report_id):
     return jsonify({'report': result_payload(result), 'case': case_payload(result.case)})
 
 
-GAME_TYPES = {'recognition', 'shapes', 'emotions'}
+GAME_TYPES = {'recognition', 'shapes', 'emotions', 'expressions', 'social', 'pattern', 'routine', 'bubbles'}
 
 
 def game_score_payload(gs):
