@@ -1029,12 +1029,15 @@ const Cases = () => {
                 {getRecommendation(currentReport, language)}
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '1rem' }}>
-                <button className="btn btn-primary" onClick={generatePDF}>
-                  <FontAwesomeIcon icon={faDownload} /> {t.downloadPDF || 'Download PDF (English)'}
-                </button>
-                <button className="btn btn-secondary" onClick={generateArabicReport}>
-                  <FontAwesomeIcon icon={faDownload} /> تحميل التقرير (عربي)
-                </button>
+                {language === 'ar' ? (
+                  <button className="btn btn-primary" onClick={generateArabicReport}>
+                    <FontAwesomeIcon icon={faDownload} /> تحميل التقرير (PDF)
+                  </button>
+                ) : (
+                  <button className="btn btn-primary" onClick={generatePDF}>
+                    <FontAwesomeIcon icon={faDownload} /> {t.downloadPDF || 'Download PDF'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
