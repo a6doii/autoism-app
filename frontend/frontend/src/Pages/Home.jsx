@@ -1,20 +1,28 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUpload, faClipboardCheck, faFileAlt, faWandMagicSparkles } from "@fortawesome/free-solid-svg-icons";
+import { faUpload, faClipboardCheck, faFileAlt, faWandMagicSparkles, faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from '../context/LanguageContext';
-import { api } from '../lib/api';
 import mascot from "../Assets/mascot.png";
+
+const BACKEND = process.env.REACT_APP_API_URL || 'https://autoism-backend-production.up.railway.app';
+
+const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 
 const Home = () => {
   const { t, language } = useLanguage();
   const [displayCount, setDisplayCount] = useState(0);
   const [totalTests, setTotalTests] = useState(null);
 
+  // Plain fetch — no auth headers needed for a public endpoint
   useEffect(() => {
-    api('/public-stats').then(data => setTotalTests(data.total_tests ?? 0)).catch(() => setTotalTests(0));
+    fetch(`${BACKEND}/api/public-stats`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setTotalTests(data.total_tests ?? 0))
+      .catch(() => setTotalTests(0));
   }, []);
 
+  // Count-up animation
   useEffect(() => {
     if (totalTests === null || totalTests === 0) return;
     const duration = 1800;
@@ -35,7 +43,8 @@ const Home = () => {
 
   return (
     <>
-      <section className="hero-section">
+      {/* ── Hero ──────────────────────────────────────────────────────── */}
+      <section id="hero" className="hero-section">
         <div className="hero-text">
           <h1>{t.heroTitle}</h1>
           <p>{t.heroSubtitle}</p>
@@ -65,10 +74,14 @@ const Home = () => {
             <img src={mascot} alt="Auto-Ism Mascot" className="mascot-img" />
           </div>
         </div>
+
+        <button className="scroll-arrow-btn" onClick={() => scrollTo('stats')} aria-label="Scroll down">
+          <FontAwesomeIcon icon={faChevronDown} />
+        </button>
       </section>
 
-      {/* ── Stats counter ───────────────────────────────────────────────── */}
-      <section className="stats-banner" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      {/* ── Stats counter ─────────────────────────────────────────────── */}
+      <section id="stats" className="stats-banner" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         <div className="stats-ring">
           <div className="stats-number-wrap">
             <span className="stats-count">{displayCount.toLocaleString()}</span>
@@ -77,10 +90,14 @@ const Home = () => {
         </div>
         <p className="stats-label">{t.screeningsCompleted}</p>
         <p className="stats-sub">{t.screeningsTrust}</p>
+
+        <button className="scroll-arrow-btn" onClick={() => scrollTo('how-it-works')} aria-label="Scroll down">
+          <FontAwesomeIcon icon={faChevronDown} />
+        </button>
       </section>
 
-      {/* ── How it works ───────────────────────────────────────────────── */}
-      <section>
+      {/* ── How it works ──────────────────────────────────────────────── */}
+      <section id="how-it-works" className="how-it-works-section">
         <div className="section-title">
           <h2>{t.howItWorks}</h2>
           <p>{t.howItWorksSubtitle}</p>
@@ -102,6 +119,12 @@ const Home = () => {
             <h3>{t.step3Title}</h3>
             <p>{t.step3Description}</p>
           </div>
+        </div>
+
+        <div className="scroll-up-wrap">
+          <button className="scroll-arrow-btn scroll-arrow-up" onClick={() => scrollTo('hero')} aria-label="Scroll to top">
+            <FontAwesomeIcon icon={faChevronUp} />
+          </button>
         </div>
       </section>
     </>
