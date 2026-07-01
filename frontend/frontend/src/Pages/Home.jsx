@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUpload, faClipboardCheck, faFileAlt, faWandMagicSparkles, faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from '../context/LanguageContext';
-import { api } from '../lib/api';
 import mascot from "../Assets/mascot.png";
 
 const BACKEND = process.env.REACT_APP_API_URL || 'https://autoism-backend-production.up.railway.app';
@@ -16,16 +15,10 @@ const Home = () => {
   const [totalTests, setTotalTests] = useState(null);
 
   useEffect(() => {
-    // Try the admin dashboard first (works when logged in — same source as dashboard page)
-    api('/admin/dashboard')
-      .then(data => setTotalTests(data.stats?.total_tests ?? 0))
-      .catch(() => {
-        // Fall back to the public endpoint for non-logged-in visitors
-        fetch(`${BACKEND}/api/public-stats`)
-          .then(r => r.ok ? r.json() : Promise.reject())
-          .then(data => setTotalTests(data.total_tests ?? 0))
-          .catch(() => setTotalTests(0));
-      });
+    fetch(`${BACKEND}/api/public-stats`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setTotalTests(data.total_tests ?? 0))
+      .catch(() => setTotalTests(0));
   }, []);
 
   // Count-up animation

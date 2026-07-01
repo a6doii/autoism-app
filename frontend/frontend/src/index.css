@@ -217,7 +217,7 @@ ul {
 
 .hero-section {
     margin-top: 5vh;
-    background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 45%, #e0f2fe 100%);
+    background: var(--bg-main);
     display: flex;
     align-items: center;
     justify-content: space-between;

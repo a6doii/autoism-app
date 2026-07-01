@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 from flask import Blueprint, request, jsonify, send_file
 from flask_login import login_required, current_user
+from flask_cors import cross_origin
 from sqlalchemy import func
 from tensorflow.keras.models import load_model
 from tensorflow.keras.applications.densenet import preprocess_input
@@ -277,6 +278,7 @@ def build_report(case, spark_score, qchat_probability, image_probability, combin
 
 
 @api.route('/public-stats', methods=['GET'])
+@cross_origin(origins='*')
 def public_stats():
     return jsonify({'total_tests': TestResult.query.count()})
 
