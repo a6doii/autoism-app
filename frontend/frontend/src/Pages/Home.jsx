@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUpload, faClipboardCheck, faFileAlt, faWandMagicSparkles, faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from '../context/LanguageContext';
-import { api } from '../lib/api';
 import mascot from "../Assets/mascot.png";
+
+const PUBLIC_API = process.env.REACT_APP_API_URL || 'https://autoism-backend-production.up.railway.app';
 
 const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 
@@ -14,8 +15,9 @@ const Home = () => {
   const [totalTests, setTotalTests] = useState(null);
 
   useEffect(() => {
-    api('/public-stats')
-      .then(data => setTotalTests(data.total_tests ?? 0))
+    fetch(`${PUBLIC_API}/api/public-stats`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => setTotalTests(d.total_tests ?? 0))
       .catch(() => setTotalTests(0));
   }, []);
 
