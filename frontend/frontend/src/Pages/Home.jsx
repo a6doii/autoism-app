@@ -1,44 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUpload, faClipboardCheck, faFileAlt, faWandMagicSparkles, faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
+import { faUpload, faClipboardCheck, faFileAlt, faWandMagicSparkles } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from '../context/LanguageContext';
 import mascot from "../Assets/mascot.png";
 
-const PUBLIC_API = process.env.REACT_APP_API_URL || 'https://autoism-backend-production.up.railway.app';
-
-const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-
 const Home = () => {
-  const { t, language } = useLanguage();
-  const [displayCount, setDisplayCount] = useState(0);
-  const [totalTests, setTotalTests] = useState(null);
-
-  useEffect(() => {
-    fetch(`${PUBLIC_API}/api/public-stats`)
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => setTotalTests(d.total_tests ?? 0))
-      .catch(() => setTotalTests(0));
-  }, []);
-
-  // Count-up animation
-  useEffect(() => {
-    if (totalTests === null || totalTests === 0) return;
-    const duration = 1800;
-    const steps = 80;
-    const increment = totalTests / steps;
-    let current = 0;
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= totalTests) {
-        setDisplayCount(totalTests);
-        clearInterval(timer);
-      } else {
-        setDisplayCount(Math.floor(current));
-      }
-    }, duration / steps);
-    return () => clearInterval(timer);
-  }, [totalTests]);
+  const { t } = useLanguage();
 
   return (
     <>
@@ -73,26 +41,6 @@ const Home = () => {
             <img src={mascot} alt="Auto-Ism Mascot" className="mascot-img" />
           </div>
         </div>
-
-        <button className="scroll-arrow-btn" onClick={() => scrollTo('stats')} aria-label="Scroll down">
-          <FontAwesomeIcon icon={faChevronDown} />
-        </button>
-      </section>
-
-      {/* ── Stats counter ─────────────────────────────────────────────── */}
-      <section id="stats" className="stats-banner" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <div className="stats-ring">
-          <div className="stats-number-wrap">
-            <span className="stats-count">{displayCount.toLocaleString()}</span>
-            <span className="stats-plus">+</span>
-          </div>
-        </div>
-        <p className="stats-label">{t.screeningsCompleted}</p>
-        <p className="stats-sub">{t.screeningsTrust}</p>
-
-        <button className="scroll-arrow-btn" onClick={() => scrollTo('how-it-works')} aria-label="Scroll down">
-          <FontAwesomeIcon icon={faChevronDown} />
-        </button>
       </section>
 
       {/* ── How it works ──────────────────────────────────────────────── */}
@@ -118,12 +66,6 @@ const Home = () => {
             <h3>{t.step3Title}</h3>
             <p>{t.step3Description}</p>
           </div>
-        </div>
-
-        <div className="scroll-up-wrap">
-          <button className="scroll-arrow-btn scroll-arrow-up" onClick={() => scrollTo('hero')} aria-label="Scroll to top">
-            <FontAwesomeIcon icon={faChevronUp} />
-          </button>
         </div>
       </section>
     </>

@@ -61,15 +61,6 @@ def create_app():
 
     db.init_app(app)
 
-    # Registered FIRST so it executes LAST (Flask after_request is LIFO).
-    # This lets it override flask-cors headers for the public endpoint.
-    @app.after_request
-    def _public_stats_cors(response):
-        if request.path == '/api/public-stats':
-            response.headers['Access-Control-Allow-Origin'] = '*'
-            response.headers.discard('Access-Control-Allow-Credentials')
-        return response
-
     CORS(app, supports_credentials=True, origins=[
         'http://localhost:3000',
         'http://127.0.0.1:3000',
