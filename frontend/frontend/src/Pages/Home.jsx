@@ -1,21 +1,44 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUpload, faClipboardCheck, faFileAlt, faWandMagicSparkles } from "@fortawesome/free-solid-svg-icons";
 import { useLanguage } from '../context/LanguageContext';
+import { api } from '../lib/api';
 import mascot from "../Assets/mascot.png";
 
 const Home = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const [displayCount, setDisplayCount] = useState(0);
+  const [totalTests, setTotalTests] = useState(null);
+
+  useEffect(() => {
+    api('/public-stats').then(data => setTotalTests(data.total_tests ?? 0)).catch(() => setTotalTests(0));
+  }, []);
+
+  useEffect(() => {
+    if (totalTests === null || totalTests === 0) return;
+    const duration = 1800;
+    const steps = 80;
+    const increment = totalTests / steps;
+    let current = 0;
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= totalTests) {
+        setDisplayCount(totalTests);
+        clearInterval(timer);
+      } else {
+        setDisplayCount(Math.floor(current));
+      }
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [totalTests]);
 
   return (
     <>
-
       <section className="hero-section">
         <div className="hero-text">
           <h1>{t.heroTitle}</h1>
           <p>{t.heroSubtitle}</p>
-
           <div className="hero-buttons">
             <Link to="/cases" className="btn-magic">
               <FontAwesomeIcon icon={faWandMagicSparkles} /> {t.startAssessment}
@@ -44,6 +67,19 @@ const Home = () => {
         </div>
       </section>
 
+      {/* ── Stats counter ───────────────────────────────────────────────── */}
+      <section className="stats-banner" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        <div className="stats-ring">
+          <div className="stats-number-wrap">
+            <span className="stats-count">{displayCount.toLocaleString()}</span>
+            <span className="stats-plus">+</span>
+          </div>
+        </div>
+        <p className="stats-label">{t.screeningsCompleted}</p>
+        <p className="stats-sub">{t.screeningsTrust}</p>
+      </section>
+
+      {/* ── How it works ───────────────────────────────────────────────── */}
       <section>
         <div className="section-title">
           <h2>{t.howItWorks}</h2>
@@ -52,31 +88,22 @@ const Home = () => {
 
         <div className="steps-container">
           <div className="step-card">
-            <div className="icon-circle">
-              <FontAwesomeIcon icon={faUpload} />
-            </div>
+            <div className="icon-circle"><FontAwesomeIcon icon={faUpload} /></div>
             <h3>{t.step1Title}</h3>
             <p>{t.step1Description}</p>
           </div>
-
           <div className="step-card">
-            <div className="icon-circle">
-              <FontAwesomeIcon icon={faClipboardCheck} />
-            </div>
+            <div className="icon-circle"><FontAwesomeIcon icon={faClipboardCheck} /></div>
             <h3>{t.step2Title}</h3>
             <p>{t.step2Description}</p>
           </div>
-
           <div className="step-card">
-            <div className="icon-circle">
-              <FontAwesomeIcon icon={faFileAlt} />
-            </div>
+            <div className="icon-circle"><FontAwesomeIcon icon={faFileAlt} /></div>
             <h3>{t.step3Title}</h3>
             <p>{t.step3Description}</p>
           </div>
         </div>
       </section>
-
     </>
   );
 };

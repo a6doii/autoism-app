@@ -276,6 +276,11 @@ def build_report(case, spark_score, qchat_probability, image_probability, combin
     return '\n'.join(lines), label, final_text
 
 
+@api.route('/public-stats', methods=['GET'])
+def public_stats():
+    return jsonify({'total_tests': TestResult.query.count()})
+
+
 @api.route('/questions', methods=['GET'])
 def questions():
     return jsonify({
