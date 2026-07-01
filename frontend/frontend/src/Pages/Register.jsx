@@ -6,7 +6,7 @@ import { api, setAuthToken } from '../lib/api';
 import { auth, authActionSettings } from '../lib/firebase';
 import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faPlus, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import mascotExcited from '../Assets/mascot_excited.png';
 import MascotSparkle from '../Components/MascotSparkle';
 
@@ -23,7 +23,8 @@ const Register = () => {
   });
   const [profileImage, setProfileImage] = useState(null);
   const [profileImageFile, setProfileImageFile] = useState(null);
-  const [showPasswords] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
@@ -190,8 +191,24 @@ const Register = () => {
             <div className="form-group" style={{ textAlign: 'left' }}><label>{t.email}</label><input type="email" name="email" className="form-control" value={formData.email} onChange={handleChange} required /></div>
 
             <div className="form-group-row">
-              <div className="form-group"><label>{t.password}</label><input type={showPasswords ? "text" : "password"} name="password" className="form-control" value={formData.password} onChange={handleChange} required /></div>
-              <div className="form-group"><label>{t.confirmPassword}</label><input type={showPasswords ? "text" : "password"} name="confirmPassword" className="form-control" value={formData.confirmPassword} onChange={handleChange} required /></div>
+              <div className="form-group">
+                <label>{t.password}</label>
+                <div style={{ position: 'relative' }}>
+                  <input type={showPassword ? "text" : "password"} name="password" className="form-control" value={formData.password} onChange={handleChange} required style={{ paddingRight: language === 'ar' ? undefined : '2.5rem', paddingLeft: language === 'ar' ? '2.5rem' : undefined }} />
+                  <span onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: language === 'ar' ? 'auto' : '12px', left: language === 'ar' ? '12px' : 'auto', cursor: 'pointer', color: '#94a3b8' }}>
+                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                  </span>
+                </div>
+              </div>
+              <div className="form-group">
+                <label>{t.confirmPassword}</label>
+                <div style={{ position: 'relative' }}>
+                  <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" className="form-control" value={formData.confirmPassword} onChange={handleChange} required style={{ paddingRight: language === 'ar' ? undefined : '2.5rem', paddingLeft: language === 'ar' ? '2.5rem' : undefined }} />
+                  <span onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: language === 'ar' ? 'auto' : '12px', left: language === 'ar' ? '12px' : 'auto', cursor: 'pointer', color: '#94a3b8' }}>
+                    <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #e2e8f0', textAlign: 'left' }}>
