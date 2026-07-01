@@ -6,8 +6,6 @@ import { useLanguage } from '../context/LanguageContext';
 import { api } from '../lib/api';
 import mascot from "../Assets/mascot.png";
 
-const BACKEND = process.env.REACT_APP_API_URL || 'https://autoism-backend-production.up.railway.app';
-
 const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 
 const Home = () => {
