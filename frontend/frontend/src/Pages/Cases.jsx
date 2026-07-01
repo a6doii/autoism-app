@@ -390,167 +390,165 @@ const Cases = () => {
     const isHighRisk = currentReport.prediction_label?.toLowerCase().includes('high') ||
                        currentReport.prediction_label?.toLowerCase().includes('autism likelihood detected');
     const accentColor = isHighRisk ? [220, 38, 38] : [5, 150, 105];
-    const riskLabel = isHighRisk ? 'HIGH RISK' : 'LOW RISK';
-    const childName = activeCase?.child_name || 'N/A';
-    const childDob = activeCase?.child_dob || 'N/A';
-    const reportDate = new Date(currentReport.created_at).toLocaleDateString('en-US', {
+    const riskBg      = isHighRisk ? [254, 242, 242] : [236, 253, 245];
+    const riskLabel   = isHighRisk ? 'HIGH RISK' : 'LOW RISK';
+    const childName   = activeCase?.child_name || 'N/A';
+    const childDob    = activeCase?.child_dob  || 'N/A';
+    const reportDate  = new Date(currentReport.created_at).toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric'
     });
     const riskPct = currentReport.combined_risk != null
-      ? `${(currentReport.combined_risk * 100).toFixed(1)}%`
-      : 'N/A';
+      ? `${(currentReport.combined_risk * 100).toFixed(1)}%` : 'N/A';
 
     const extractDemo = (text, key) => {
       if (!text) return null;
-      const regex = new RegExp(`${key}:\\s*([^\\n\\r]+)`, 'i');
-      const match = text.match(regex);
-      return match ? match[1].trim() : null;
+      const m = text.match(new RegExp(`${key}:\\s*([^\\n\\r]+)`, 'i'));
+      return m ? m[1].trim() : null;
     };
-    const demSex = extractDemo(currentReport.report_text, 'Child sex') || qchat.child_sex || 'N/A';
-    const demEthnicity = extractDemo(currentReport.report_text, 'Ethnicity') || qchat.child_ethnicity || 'N/A';
-    const demJaundice = extractDemo(currentReport.report_text, 'Jaundice history') || qchat.jaundice || 'N/A';
-    const demFamilyAsd = extractDemo(currentReport.report_text, 'Family ASD history') || qchat.family_asd || 'N/A';
+    const cap = v => String(v || 'N/A').charAt(0).toUpperCase() + String(v || 'N/A').slice(1);
+    const demSex      = extractDemo(currentReport.report_text, 'Child sex')        || qchat.child_sex      || 'N/A';
+    const demEthnicity= extractDemo(currentReport.report_text, 'Ethnicity')        || qchat.child_ethnicity|| 'N/A';
+    const demJaundice = extractDemo(currentReport.report_text, 'Jaundice history') || qchat.jaundice       || 'N/A';
+    const demFamilyAsd= extractDemo(currentReport.report_text, 'Family ASD history')|| qchat.family_asd   || 'N/A';
 
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const W = 210, M = 15, CW = W - 2 * M;
 
-    // ── Page 1 ──────────────────────────────────────────
-    doc.setFontSize(28); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
-    doc.text('Auto-Ism', 20, 25);
-    doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
-    doc.text('Early Autism Screening Report', 20, 33);
-    doc.setFontSize(9); doc.setTextColor(148, 163, 184);
-    doc.text('Cairo University FCAI 2026', 190, 20, { align: 'right' });
-    doc.text('Supervised by Dr. Elham Shawky', 190, 26, { align: 'right' });
+    // ── Shared helpers ───────────────────────────────────────────────────────
+    const drawHeader = (subtitle) => {
+      // Dark navy header bar — identical layout to Arabic version
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 0, W, 24, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+      doc.setTextColor(255, 255, 255);
+      doc.text('Auto-Ism', W - M, 10, { align: 'right', baseline: 'middle' });
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      doc.setTextColor(148, 163, 184);
+      doc.text(subtitle, W - M, 18, { align: 'right', baseline: 'middle' });
+      doc.setTextColor(0, 0, 0);
+    };
 
-    doc.setDrawColor(...accentColor); doc.setLineWidth(0.8);
-    doc.line(20, 38, 190, 38);
+    const sectionTitle = (title, y) => {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+      doc.setTextColor(15, 23, 42);
+      doc.text(title, M, y);
+      doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.4);
+      doc.line(M, y + 3, W - M, y + 3);
+      doc.setTextColor(0, 0, 0);
+    };
 
+    const drawFooter = (date) => {
+      doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3);
+      doc.line(M, 270, W - M, 270);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Created: ${date}`, W / 2, 278, { align: 'center' });
+    };
+
+    // ── Page 1: Overview ─────────────────────────────────────────────────────
+    drawHeader('Early Autism Screening Report');
+
+    // Patient card
     doc.setFillColor(248, 250, 252); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3);
-    doc.roundedRect(20, 44, 170, 32, 2, 2, 'FD');
+    doc.rect(M, 30, CW, 34, 'FD');
+    [
+      ['PATIENT NAME',      childName,   M + 5,          36],
+      ['DATE OF ASSESSMENT',reportDate,  M + CW / 2 + 5, 36],
+      ['DATE OF BIRTH',     childDob,    M + 5,          50],
+      ['CASE REFERENCE',    `#${currentReport.case_id}`, M + CW / 2 + 5, 50],
+    ].forEach(([label, value, x, y]) => {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(100, 116, 139);
+      doc.text(label, x, y);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(15, 23, 42);
+      doc.text(String(value), x, y + 6);
+    });
 
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 116, 139);
-    doc.text('PATIENT NAME', 28, 52);
-    doc.text('DATE OF ASSESSMENT', 115, 52);
-    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
-    doc.text(childName, 28, 59);
-    doc.text(reportDate, 115, 59);
-
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 116, 139);
-    doc.text('DATE OF BIRTH', 28, 67);
-    doc.text('CASE REFERENCE', 115, 67);
-    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
-    doc.text(childDob, 28, 74);
-    doc.text(`#${currentReport.case_id}`, 115, 74);
-
+    // Risk banner — solid color, same proportions as Arabic
     doc.setFillColor(...accentColor);
-    doc.roundedRect(20, 84, 170, 22, 3, 3, 'F');
+    doc.rect(M, 70, CW, 20, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-    doc.text('COMBINED RISK INDICATION', 105, 92, { align: 'center' });
-    doc.setFontSize(18); doc.setFont('helvetica', 'bold');
-    doc.text(riskLabel, 105, 101, { align: 'center' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+    doc.text('COMBINED RISK INDICATION', W / 2, 76, { align: 'center' });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+    doc.text(riskLabel, W / 2, 85, { align: 'center' });
 
-    doc.setTextColor(15, 23, 42); doc.setFontSize(13); doc.setFont('helvetica', 'bold');
-    doc.text('Model Diagnostics', 20, 118);
-    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.5);
-    doc.line(20, 121, 190, 121);
-
+    // Diagnostics table
+    doc.setTextColor(0, 0, 0);
+    sectionTitle('Model Diagnostics', 98);
     autoTable(doc, {
-      startY: 124,
+      startY: 103,
       head: [['Assessment Component', 'Score']],
       body: [
-        ['Q-CHAT-10 Questionnaire Analysis', `${currentReport.spark_score}/10`],
-        ['Facial Biometric Analysis', currentReport.image_score != null ? `${(currentReport.image_score * 100).toFixed(1)}%` : 'N/A'],
-        ['Final Weighted Probability', riskPct],
+        ['Q-CHAT-10 Questionnaire Analysis',  `${currentReport.spark_score}/10`],
+        ['Facial Biometric Analysis',          currentReport.image_score != null ? `${(currentReport.image_score * 100).toFixed(1)}%` : 'N/A'],
+        ['Final Weighted Probability',         riskPct],
       ],
-      headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 10, lineColor: [203, 213, 225], lineWidth: 0.3 },
-      bodyStyles: { textColor: [51, 65, 85], fontSize: 11, lineColor: [226, 232, 240], lineWidth: 0.2 },
-      alternateRowStyles: { fillColor: [248, 250, 252] },
-      columnStyles: { 0: { cellWidth: 135 }, 1: { cellWidth: 35, fontStyle: 'bold', halign: 'center' } },
+      headStyles:          { fillColor: [241, 245, 249], textColor: [71, 85, 105],  fontStyle: 'bold', fontSize: 9,  lineColor: [203, 213, 225], lineWidth: 0.3 },
+      bodyStyles:          { textColor: [51, 65, 85],                               fontSize: 11, lineColor: [226, 232, 240], lineWidth: 0.2 },
+      alternateRowStyles:  { fillColor: [248, 250, 252] },
+      columnStyles:        { 0: { cellWidth: 135 }, 1: { cellWidth: 35, fontStyle: 'bold', halign: 'center' } },
       didParseCell: (data) => {
         if (data.row.index === 2 && data.section === 'body') {
-          data.cell.styles.textColor = accentColor;
-          data.cell.styles.fillColor = isHighRisk ? [254, 242, 242] : [236, 253, 245];
+          data.cell.styles.textColor    = accentColor;
+          data.cell.styles.fillColor    = riskBg;
+          data.cell.styles.fontStyle    = 'bold';
         }
-      }
+      },
     });
 
-    doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3);
-    doc.line(20, 270, 190, 270);
-    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(148, 163, 184);
-    doc.text('This report is generated by an AI-based screening tool and does NOT constitute a medical diagnosis.', 20, 275);
-    doc.text('Results must be interpreted by a qualified healthcare professional. Consult a pediatrician for formal evaluation.', 20, 280);
+    drawFooter(reportDate);
 
-    // ── Page 2 ──────────────────────────────────────────
+    // ── Page 2: Demographics + Recommendation ────────────────────────────────
     doc.addPage();
-    doc.setFontSize(28); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
-    doc.text('Auto-Ism', 20, 25);
-    doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
-    doc.text('Detailed Analysis & Demographics', 20, 33);
-    doc.setDrawColor(...accentColor); doc.setLineWidth(0.8);
-    doc.line(20, 38, 190, 38);
+    drawHeader('Detailed Analysis & Demographics');
 
-    doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
-    doc.text('Demographic Profile', 20, 50);
-    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.5);
-    doc.line(20, 53, 190, 53);
-
+    sectionTitle('Demographic Profile', 32);
     autoTable(doc, {
-      startY: 56,
+      startY: 37,
       body: [
-        ['Biological Sex', String(demSex).charAt(0).toUpperCase() + String(demSex).slice(1)],
-        ['Ethnicity', String(demEthnicity).charAt(0).toUpperCase() + String(demEthnicity).slice(1)],
-        ['History of Jaundice', String(demJaundice).charAt(0).toUpperCase() + String(demJaundice).slice(1)],
-        ['Family ASD History', String(demFamilyAsd).charAt(0).toUpperCase() + String(demFamilyAsd).slice(1)],
+        ['Biological Sex',      cap(demSex)],
+        ['Ethnicity',           cap(demEthnicity)],
+        ['History of Jaundice', cap(demJaundice)],
+        ['Family ASD History',  cap(demFamilyAsd)],
       ],
-      bodyStyles: { textColor: [51, 65, 85], fontSize: 11, lineColor: [226, 232, 240], lineWidth: 0.2 },
+      bodyStyles:         { textColor: [51, 65, 85], fontSize: 11, lineColor: [226, 232, 240], lineWidth: 0.2 },
       alternateRowStyles: { fillColor: [248, 250, 252] },
-      columnStyles: { 0: { cellWidth: 80, fontStyle: 'bold', textColor: [100, 116, 139] }, 1: { cellWidth: 90 } },
+      columnStyles:       { 0: { cellWidth: 80, fontStyle: 'bold', textColor: [100, 116, 139] }, 1: { cellWidth: 90 } },
     });
 
-    const afterTableY = doc.lastAutoTable.finalY + 10;
-    doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
-    doc.text('Clinical Recommendation', 20, afterTableY);
-    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.5);
-    doc.line(20, afterTableY + 3, 190, afterTableY + 3);
+    const recTitleY = doc.lastAutoTable.finalY + 10;
+    sectionTitle('Clinical Recommendation', recTitleY);
 
-    doc.setDrawColor(...accentColor); doc.setLineWidth(1.2);
-    const textStartY = afterTableY + 10;
-    doc.line(20, textStartY, 20, textStartY + 80);
+    const recY     = recTitleY + 8;
+    const recText  = getRecommendation(currentReport, 'en');
+    const recLines = doc.splitTextToSize(recText, CW - 12);
+    const recH     = Math.max(30, recLines.length * 5.5 + 14);
 
-    const reportText = getRecommendation(currentReport, 'en');
-    const textLines = doc.splitTextToSize(reportText, 160);
-    doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor(51, 65, 85);
-    doc.text(textLines, 25, textStartY + 6);
+    // Colored left bar + tinted background — identical to Arabic layout
+    doc.setFillColor(...accentColor);
+    doc.rect(M, recY, 3, recH, 'F');
+    doc.setFillColor(...riskBg);
+    doc.rect(M + 3, recY, CW - 3, recH, 'F');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+    doc.setTextColor(...accentColor);
+    doc.text(recLines, M + 8, recY + 8);
 
-    doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3);
-    doc.line(20, 270, 190, 270);
-    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(148, 163, 184);
-    doc.text(`Generated: ${reportDate}`, 105, 276, { align: 'center' });
+    drawFooter(reportDate);
 
-    // ── Page 3: Q-CHAT Responses ────────────────────────
+    // ── Page 3: Q-CHAT Responses ─────────────────────────────────────────────
     doc.addPage();
-    doc.setFontSize(28); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
-    doc.text('Auto-Ism', 20, 25);
-    doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
-    doc.text('Q-CHAT-10 Questionnaire Responses', 20, 33);
-    doc.setDrawColor(...accentColor); doc.setLineWidth(0.8);
-    doc.line(20, 38, 190, 38);
+    drawHeader('Q-CHAT-10 Questionnaire Responses');
 
-    doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
-    doc.text('Question Responses', 20, 50);
-    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.5);
-    doc.line(20, 53, 190, 53);
-
+    sectionTitle('Question Responses', 32);
     const pdfQuestions = [
       'Does your child look at you when you call his/her name?',
       'How easy is it for you to get eye contact with your child?',
       'Does your child point to indicate that s/he wants something?',
       'Does your child point to share interest with you?',
       'Does your child pretend? (e.g., care for dolls, talk on toy phone)',
-      'Does your child follow where you\'re looking?',
+      "Does your child follow where you're looking?",
       'If someone is upset, does your child try to comfort them?',
-      'Would you describe your child\'s first words as:',
+      "Would you describe your child's first words as:",
       'Does your child use simple gestures?',
       'Does your child stare at nothing with no apparent purpose?',
     ];
@@ -570,26 +568,21 @@ const Cases = () => {
     const qchatRows = pdfQuestions.map((q, i) => {
       const letter = reportAnswers[`A${i + 1}`] || '-';
       const idx = ['A','B','C','D','E'].indexOf(letter);
-      const answerText = idx >= 0 ? pdfOptions[i][idx] : letter;
-      return [`Q${i + 1}`, q, answerText];
+      return [`Q${i + 1}`, q, idx >= 0 ? pdfOptions[i][idx] : letter];
     });
     autoTable(doc, {
-      startY: 56,
+      startY: 37,
       head: [['#', 'Question', 'Response']],
       body: qchatRows,
-      headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 9, lineColor: [203, 213, 225], lineWidth: 0.3 },
-      bodyStyles: { textColor: [51, 65, 85], fontSize: 9, lineColor: [226, 232, 240], lineWidth: 0.2 },
+      headStyles:         { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 9, lineColor: [203, 213, 225], lineWidth: 0.3 },
+      bodyStyles:         { textColor: [51, 65, 85], fontSize: 9, lineColor: [226, 232, 240], lineWidth: 0.2 },
       alternateRowStyles: { fillColor: [248, 250, 252] },
-      columnStyles: { 0: { cellWidth: 12, halign: 'center', fontStyle: 'bold' }, 1: { cellWidth: 128 }, 2: { cellWidth: 40, fontStyle: 'bold' } },
+      columnStyles:       { 0: { cellWidth: 12, halign: 'center', fontStyle: 'bold' }, 1: { cellWidth: 128 }, 2: { cellWidth: 40, fontStyle: 'bold' } },
     });
 
-    doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3);
-    doc.line(20, 270, 190, 270);
-    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(148, 163, 184);
-    doc.text(`Generated: ${reportDate}`, 105, 276, { align: 'center' });
+    drawFooter(reportDate);
 
-    const fileName = `Auto-Ism-Report-${childName.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
-    doc.save(fileName);
+    doc.save(`Auto-Ism-Report-${childName.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`);
   };
 
   const generateArabicReport = async () => {
@@ -731,12 +724,10 @@ const Cases = () => {
         T(cx, val,  px, 111 + row * 36, 12, '700', '#0f172a', 'center');
       });
 
-      // Risk banner
+      // Risk banner — solid color (matches English version)
       const by = 174;
-      const gr = cx.createLinearGradient(M, by, M + CW, by);
-      gr.addColorStop(0, isHighRisk ? '#dc2626' : '#059669');
-      gr.addColorStop(1, isHighRisk ? '#7f1d1d' : '#064e3b');
-      cx.fillStyle = gr; cx.fillRect(M, by, CW, 52);
+      cx.fillStyle = isHighRisk ? '#dc2626' : '#059669';
+      cx.fillRect(M, by, CW, 52);
       T(cx, 'مؤشر المخاطر المجمعة', W / 2, by + 16, 10, '400', 'rgba(255,255,255,0.85)', 'center');
       T(cx, isHighRisk ? 'خطر مرتفع' : 'خطر منخفض', W / 2, by + 37, 21, '800', 'white', 'center');
 

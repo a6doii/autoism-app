@@ -10,7 +10,7 @@ import {
   Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
-const COLORS_OUTCOME = ['#ef4444', '#10b981'];
+const COLORS_OUTCOME = ['#10b981', '#ef4444'];
 const COLOR_POSITIVE = '#ef4444';
 const COLOR_NEGATIVE = '#10b981';
 const COLORS_AGE = ['#3b82f6', '#0EA5E9', '#10b981', '#f59e0b', '#a855f7', '#ec4899', '#ef4444'];
