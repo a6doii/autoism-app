@@ -63,8 +63,6 @@ const Game = () => {
   const [cases, setCases]           = useState([]);
   const [selectedCaseId, setSelectedCaseId] = useState('');
   const [activeGame, setActiveGame] = useState(null);
-  const [saveError, setSaveError]   = useState('');
-
   useEffect(() => {
     api('/cases')
       .then((data) => {
@@ -77,14 +75,13 @@ const Game = () => {
 
   const saveScore = async ({ score, maxScore, level }) => {
     if (!activeGame) return;
-    setSaveError('');
     try {
       await api(`/cases/${selectedCaseId}/game-scores`, {
         method: 'POST',
         body: JSON.stringify({ game: activeGame, score, max_score: maxScore, level }),
       });
-    } catch (err) {
-      setSaveError(err.message);
+    } catch {
+      // Score saving is non-critical; don't disrupt gameplay
     }
   };
 
@@ -109,7 +106,6 @@ const Game = () => {
     const props = { onFinish: saveScore, onBack: () => setActiveGame(null) };
     return (
       <>
-        {saveError && <p style={{ textAlign: 'center', color: 'var(--danger)' }}>{saveError}</p>}
         {activeGame === 'recognition'  && <RecognitionGame  {...props} />}
         {activeGame === 'shapes'       && <ShapeMatchGame   {...props} />}
         {activeGame === 'emotions'     && <EmotionGame      {...props} />}
