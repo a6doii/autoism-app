@@ -1130,14 +1130,14 @@ h1 {
    STATS BANNER (Home page counter)
 ========================================= */
 .stats-banner {
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 55%, #e0f2fe 100%);
-    border-top: 1px solid #bfdbfe;
-    border-bottom: 1px solid #bfdbfe;
+    background: var(--bg-main);
+    min-height: 100vh;
     padding: 4.5rem 1rem;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 0.6rem;
 }
 
