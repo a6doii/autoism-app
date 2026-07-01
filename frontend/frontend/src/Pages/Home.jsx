@@ -21,7 +21,7 @@ const Home = () => {
       .then(data => setTotalTests(data.stats?.total_tests ?? 0))
       .catch(() => {
         // Fall back to the public endpoint for non-logged-in visitors
-        fetch(`${BACKEND}/api/public-stats`, { credentials: 'include' })
+        fetch(`${BACKEND}/api/public-stats`)
           .then(r => r.ok ? r.json() : Promise.reject())
           .then(data => setTotalTests(data.total_tests ?? 0))
           .catch(() => setTotalTests(0));
